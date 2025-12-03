@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Как Дела?</string>
+    <string name="hello">Как дела?</string>
+    <string name="start_chat">Начать чат</string>
+</resources>

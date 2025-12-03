@@ -1,18 +1,16 @@
-name: Android CI
+name: Build APK
 
 on:
   push:
-    branches: [ main, develop, feature/* ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -20,35 +18,14 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Grant permission for gradlew
+      - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Show available modules and debug tasks
-        run: |
-          echo "=== Available modules ==="
-          ./gradlew -q projects
-          echo ""
-          echo "=== All tasks containing 'Debug', 'Bundle' or 'Assemble' ==="
-          ./gradlew -q tasks --all | grep -i -E "(debug|bundle|assemble)"
+      - name: Build Debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace
 
-      - name: Try build any debug variant
-        run: |
-          ./gradlew assembleDebug bundleDebug \
-                     :app:assembleDebug :app:bundleDebug \
-                     :mobile:assembleDebug :messenger:assembleDebug \
-                     :kakdela:assembleDebug :client:assembleDebug || true
-
-      - name: Search for generated AAB/APK
-        run: |
-          echo "=== Searching for .aab and .apk files ==="
-          find . -type f \( -name "*.aab" -o -name "*.apk" \) -ls || echo "Nothing found"
-
-      - name: Upload artifact (if any)
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: kakdela-debug-build
-          path: |
-            **/*.aab
-            **/*.apk
-          if-no-files-found: warn
-          retention-days: 30
+          name: Kakdela-debug.apk
+          path: app/build/outputs/apk/debug/app-debug.apk

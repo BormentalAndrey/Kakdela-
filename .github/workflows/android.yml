@@ -1,14 +1,10 @@
-name: Build APK/AAB
+name: Build Kakdela
 
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -21,13 +17,11 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build Debug (APK + AAB)
-        run: ./gradlew :app:assembleDebug :app:bundleDebug
+      - name: Build Debug AAB (это главная строка)
+        run: ./gradlew :app:bundleDebug
 
-      - name: Upload artifact
+      - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
-          name: Kakdela-debug
-          path: |
-            app/build/outputs/**/*.apk
-            app/build/outputs/**/*.aab
+          name: Kakdela-debug.aab
+          path: app/build/outputs/bundle/debug/app-debug.aab

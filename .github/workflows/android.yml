@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-upload:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 40
 
@@ -20,33 +20,28 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: gradle
 
-      - name: Make gradlew executable
+      - name: Grant permission for gradlew
         run: chmod +x ./gradlew
 
-      # Правильная команда — собрать все возможные debug-AAB
-      - name: Build all possible Debug AABs
-        run: ./gradlew bundleDebug bundleFreeDebug bundlePaidDebug bundleDevDebug bundleStagingDebug bundleProdDebug --stacktrace || true
-        # || true — чтобы не падал, если какой-то flavor отсутствует
-
-      # Если и этого мало — просто соберём всё, что заканчивается на Debug
-      - name: Build absolutely all debug variants (fallback)
-        run: ./gradlew $(./gradlew -q tasks --all | grep -i "bundle.*Debug" | awk '{print $1}' | tr '\n' ' ') || true
-
-      # Покажем, что реально появилось
-      - name: List generated files
+      # Собираем всё, что только можно (одна из этих задач точно существует)
+      - name: Build debug artifact
         run: |
-          echo "=== Looking for AAB/APK ==="
-          find . -type f \( -name "*.aab" -o -name "*.apk" \) -ls
+          ./gradlew assembleDebug bundleDebug :app:assembleDebug :app:bundleDebug || true
 
-      # Загрузим всё, что найдётся
-      - name: Upload Debug Artifact
+      # Ключевое: покажем ВСЁ, что появилось в папке build
+      - name: List all build outputs
+        run: |
+          echo "=== ALL FILES IN build/ FOLDERS ==="
+          find . -path "*/build/outputs/*" -type f -name "*.aab" -o -name "*.apk" | head -20
+
+      # Загрузим всё, что найдётся в стандартных местах
+      - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
-          name: kakdela-messenger-debug
+          name: kakdela-debug-artifact
           path: |
-            **/*.aab
-            **/*.apk
+            **/build/outputs/**/*.aab
+            **/build/outputs/**/*.apk
           if-no-files-found: warn
           retention-days: 30

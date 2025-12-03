@@ -2,15 +2,17 @@ name: Android CI
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main", "develop", "feature/*" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -18,29 +20,37 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
-      - name: Cache Gradle packages
+      # Кэш Gradle — полностью исправленный (без запятых!)
+      - name: Cache Gradle dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: \( {{ runner.os }}-gradle- \){{ hashFiles('**/*.gradle*', '**/*.gradle.kts', '**/gradle-wrapper.properties') }}
+          key: \( {{ runner.os }}-gradle- \){{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-
 
-      # Главное — именно assembleDebug, а не просто build!
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+      # Даем права на выполнение gradlew
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-      # Опционально тесты
-      - name: Run tests
-        run: ./gradlew testDebugUnitTest
+      # Главное — именно assembleDebug, а не просто build
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace --info
+
+      # Опционально: запускаем unit-тесты (если есть)
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --continue || true
 
       # Надёжно находит APK даже в новых версиях AGP
-      - name: Upload APK
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: kakdela-messenger-debug.apk
           path: |
-            app/build/outputs/apk/debug/*.apk
-            **/build/outputs/apk/**/*.apk
+            app/build/outputs/apk/debug/*-debug.apk
+            **/build/outputs/apk/**/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14

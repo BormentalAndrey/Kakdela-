@@ -22,7 +22,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: gradle        # ускоряет сборку в 4–6 раз после первого раза
+          cache: gradle
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
@@ -30,12 +30,12 @@ jobs:
       - name: Build Debug AAB
         run: ./gradlew bundleDebug --stacktrace --no-daemon
 
-      - name:name: Debug — show where AAB was generated
+      - name: Debug — show where AAB location
         run: |
           echo "Looking for generated AAB files..."
-          find . -type f -name "*-debug.aab" -ls || echo "No AAB found"
+          find . -type f -name "*-debug.aab" -ls || echo "No AAB found yet"
 
-      - name: Upload Debug AAB (works for any module name)
+      - name: Upload Debug AAB (works with any module name)
         uses: actions/upload-artifact@v4
         with:
           name: kakdela-messenger-debug.aab
@@ -45,19 +45,3 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           overwrite: true
-
-      # Бонус: если хочешь сразу и release-AAB (подписанный) — раскомментируй блок ниже
-      # и добавь секреты ANDROID_KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
-      #
-      # - name: Build Release AAB (signed)
-      #   env:
-      #     KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-      #     KEY_PASSWORD:      ${{ secrets.KEY_PASSWORD }}
-      #     KEY_ALIAS:         ${{ secrets.KEY_ALIAS }}
-      #   run: ./gradlew bundleRelease --stacktrace
-      #
-      # - name: Upload Release AAB
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: kakdela-messenger-release.aab
-      #     path: **/build/outputs/bundle/*/release/*-release.aab

@@ -9,39 +9,50 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+      uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
+      name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 17
 
-      - name: Grant permission for gradlew
-        run: chmod +x ./gradlew
+      name: Grant permission for gradlew
+      run: chmod +x ./gradlew
 
-      # Собираем всё, что только можно (одна из этих задач точно существует)
-      - name: Build debug artifact
-        run: |
-          ./gradlew assembleDebug bundleDebug :app:assembleDebug :app:bundleDebug || true
+      # Самое важное — покажем, какие модули и задачи вообще есть
+      name: List all Gradle modules and debug tasks
+      run: |
+        echo "All project modules:"
+        ./gradlew -q projects
+        echo ""
+        echo "All tasks containing 'Debug' or 'Bundle':"
+        ./gradlew -q tasks --all | grep -i -E "(debug|bundle|assemble)"
 
-      # Ключевое: покажем ВСЁ, что появилось в папке build
-      - name: List all build outputs
-        run: |
-          echo "=== ALL FILES IN build/ FOLDERS ==="
-          find . -path "*/build/outputs/*" -type f -name "*.aab" -o -name "*.apk" | head -20
+      # Попробуем собрать всё, что хоть как-то похоже на debug-версию
+      name: Try build any debug variant
+      run: |
+        ./gradlew assembleDebug bundleDebug \
+                   :app:assembleDebug :app:bundleDebug \
+                   :mobile:assembleDebug :messenger:assembleDebug \
+                   :kakdela:assembleDebug || echo "No standard debug tasks succeeded"
 
-      # Загрузим всё, что найдётся в стандартных местах
-      - name: Upload debug artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: kakdela-debug-artifact
-          path: |
-            **/build/outputs/**/*.aab
-            **/build/outputs/**/*.apk
-          if-no-files-found: warn
-          retention-days: 30
+      # Покажем, что реально появилось после сборки
+      name: Search for any AAB or APK in the whole project
+      run: |
+        echo "Searching in the entire workspace..."
+        find . -type f \( -name "*.aab" -o -name "*.apk" \) -ls
+
+      # Загрузим всё, что найдётся
+      name: Upload artifact if anything was built
+      uses: actions/upload-artifact@v4
+      with:
+        name: kakdela-any-debug-build
+        path: |
+          **/*.aab
+          **/*.apk
+        if-no-files-found: warn
+        retention-days: 30

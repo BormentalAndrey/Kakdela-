@@ -27,19 +27,15 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      # ===== Показываем ошибки Gradle, если сборка упала =====
-      - name: Print Gradle Errors
-        if: failure()
-        run: |
-          echo "=== ERROR LOGS ==="
-          cat ./app/build/reports/*/*.txt || true
-          echo "=== LISTING PROJECT FILES ==="
-          find . -maxdepth 6 -type f | sort
-
-      # ===== Список всех apk, чтобы точно найти =====
       - name: List APK files
         run: find . -type f -name "*.apk" -print
 
-      # ===== Загружаем APK в артефакты =====
       - name: Upload Debug APK
-        uses: actions/upload-artifact@
+        uses: actions/upload-artifact@v4
+        with:
+          name: kakdela-messenger-debug
+          path: |
+            **/*debug*.apk
+            **/*Debug*.apk
+          if-no-files-found: error
+          retention-days: 14

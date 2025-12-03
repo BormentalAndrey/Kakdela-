@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout code
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -33,5 +33,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kakdela-debug-apk
-          path: "**/*.apk"      # ← ЛОВИТ APK В ЛЮБОЙ ПАПКЕ
+          path: "**/*.apk"
           if-no-files-found: error

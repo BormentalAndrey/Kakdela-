@@ -21,26 +21,26 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Ускоряет сборку в 3–10 раз
+      # ⚡ Кэш Gradle
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: \( {{ runner.os }}-gradle- \){{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # Самое важное: явно собираем debug APK
+      # 🛠️ Сборка Debug APK
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace --info
 
-      # Опционально: запустить unit-тесты (если есть)
+      # 🧪 Запуск unit-тестов (если есть)
       - name: Run Unit Tests
         run: ./gradlew testDebugUnitTest --continue
 
-      # Надёжная загрузка APK (работает даже при изменении структуры папок в AGP 8.5+)
+      # 📦 Загрузка APK
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:

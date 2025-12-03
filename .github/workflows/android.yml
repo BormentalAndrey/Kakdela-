@@ -24,7 +24,11 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --stacktrace --info
+
+      - name: Print Gradle build logs
+        if: failure()
+        run: cat app/build/reports/*/* || true
 
       - name: Show APK files (debug info)
         run: find . -type f -name "*.apk" -print

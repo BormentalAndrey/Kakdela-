@@ -1,4 +1,4 @@
-name: Build APK
+name: Build APK/AAB
 
 on:
   push:
@@ -21,11 +21,13 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+      - name: Build Debug (APK + AAB)
+        run: ./gradlew :app:assembleDebug :app:bundleDebug
 
-      - name: Upload APK
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Kakdela-debug.apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: Kakdela-debug
+          path: |
+            app/build/outputs/**/*.apk
+            app/build/outputs/**/*.aab

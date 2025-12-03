@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-and-upload-apk:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,22 +20,15 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Grant execute permission for gradlew
+      - name: Grant execute permission for Gradle
         run: chmod +x ./gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace --info
+        run: ./gradlew assembleDebug
 
-      - name: Print Gradle build logs
-        if: failure()
-        run: cat app/build/reports/*/* || true
-
-      - name: Show APK files (debug info)
-        run: find . -type f -name "*.apk" -print
-
-      - name: Upload Debug APK(s)
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: kakdela-debug-apk
-          path: "**/*.apk"
+          name: kakdela-debug
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error

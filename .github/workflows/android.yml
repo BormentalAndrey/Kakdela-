@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-upload-apk:
+  build-and-upload-aab:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -20,22 +20,31 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: gradle
 
-      - name: Grant execute permissions to gradlew
+      - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+      - name: Build Debug AAB
+        run: ./gradlew bundleDebug --stacktrace
 
-      - name: List APK files
-        run: find . -type f -name "*.apk" -print
+      - name: Show generated AAB path (для отладки)
+        run: find . -type f -name "*.aab" -ls
 
-      - name: Upload Debug APK
+      - name: Upload Debug AAB
         uses: actions/upload-artifact@v4
         with:
-          name: kakdela-messenger-debug
-          path: |
-            **/*debug*.apk
-            **/*Debug*.apk
+          name: kakdela-messenger-debug.aab
+          path: app/build/outputs/bundle/debug/app-debug.aab
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
+
+      # Опционально: сразу собрать и загрузить Release AAB (если у тебя есть signingConfig)
+      # - name: Build Release AAB
+      #   run: ./gradlew bundleRelease --stacktrace
+      #
+      # - name: Upload Release AAB
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: kakdela-messenger-release.aab
+      #     path: app/build/outputs/bundle/release/app-release.aab

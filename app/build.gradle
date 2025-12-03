@@ -1,16 +1,18 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    // id("kotlin-kapt")        // если используешь Dagger/Hilt — раскомментируй
-    // id("com.google.dagger.hilt.android") // если Hilt
+    // Если используешь kapt:
+    // id("kotlin-kapt")
+    // Если используешь Hilt:
+    // id("com.google.dagger.hilt.android")
 }
 
 android {
-    namespace = "com.kakdela.messenger" // ← замени на свой настоящий package !!!
+    namespace = "com.kakdela.messenger"      // ← Ваш package
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.kakdela.messenger" // ← тоже замени на свой
+        applicationId = "com.kakdela.messenger"
         minSdk = 21
         targetSdk = 35
         versionCode = 1
@@ -31,14 +33,22 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            // ← Вот эта строчка заставляет всегда генерировать universal APK
-            isUniversalApk = true
+
+            // ⚠️ Эта строка работала только в старом Android Gradle Plugin — сейчас она НЕ существует
+            // isUniversalApk = true   ← УДАЛЕНО, иначе будет ошибка
+
+            // ✔ Правильно указывать universal APK вот так:
+            // (работает в AGP 8.x и на GitHub Actions)
         }
     }
 
-    // Если вдруг у тебя старая версия AGP и ругается на isUniversalApk
-    // можно так:
-    // splits.abi { isUniversalApk = true }
+    // ✔ Генерация universal APK через splits
+    splits {
+        abi {
+            isEnable = true       // включить разбиение по ABI
+            isUniversalApk = true // генерировать universal APK
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -50,8 +60,8 @@ android {
     }
 
     buildFeatures {
-        viewBinding = true   // если используешь
-        dataBinding = true   // если используешь
+        viewBinding = true
+        dataBinding = true
     }
 }
 
@@ -60,8 +70,6 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-
-    // Если используешь navigation, lifecycle и т.д. — добавь свои
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

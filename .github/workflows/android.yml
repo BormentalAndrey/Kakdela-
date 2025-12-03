@@ -1,47 +1,9 @@
-name: Android CI
+- name: Build Debug AAB (all variants)
+        run: ./gradlew bundle*Debug --stacktrace
 
-on:
-  push:
-    branches: [ main, develop, feature/* ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  build-and-upload-aab:
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: gradle
-
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      - name: Build Debug AAB
-        run: ./gradlew bundleDebug --stacktrace --no-daemon
-
-      - name: Debug — show where AAB location
-        run: |
-          echo "Looking for generated AAB files..."
-          find . -type f -name "*-debug.aab" -ls || echo "No AAB found yet"
-
-      - name: Upload Debug AAB (works with any module name)
+      - name: Upload any Debug AAB
         uses: actions/upload-artifact@v4
         with:
           name: kakdela-messenger-debug.aab
-          path: |
-            **/build/outputs/bundle/*/debug/*-debug.aab
-            **/build/outputs/bundle/debug/*-debug.aab
+          path: "**/*debug*.aab"
           if-no-files-found: error
-          retention-days: 30
-          overwrite: true

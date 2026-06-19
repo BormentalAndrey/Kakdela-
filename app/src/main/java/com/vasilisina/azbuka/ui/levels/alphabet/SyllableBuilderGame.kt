@@ -72,27 +72,42 @@ private val LetterButtonElevation = 4.dp
 private val SlotFontSize = 30.sp
 private val LetterButtonFontSize = 32.sp
 
-private data class IndexedLetter(val index: Int, val char: Char) {
+private data class IndexedLetter(val position: Int, val char: Char) {
     override fun toString(): String = char.toString()
 }
 
 @Composable
 fun SyllableBuilderGame(targetSyllable: String, onComplete: (correct: Boolean) -> Unit) {
-    val letters = remember(targetSyllable) { targetSyllable.toList().mapIndexed { index, char -> IndexedLetter(index, char) }.shuffled() }
-    val usedLetterIndices = remember { mutableStateListOf<Int>() }
+    // ✅ Каждая буква получает уникальный position (0, 1, 2, 3...)
+    val letters = remember(targetSyllable) {
+        targetSyllable.mapIndexed { index, char -> IndexedLetter(position = index, char = char) }.shuffled()
+    }
+
+    val usedPositions = remember { mutableStateListOf<Int>() }
     val slots = remember(targetSyllable) { mutableStateListOf(*Array<Int?>(targetSyllable.length) { null }) }
-    var selectedLetterIndex by remember { mutableStateOf<Int?>(null) }
+    var selectedPosition by remember { mutableStateOf<Int?>(null) }
     var isCompleted by remember { mutableStateOf(false) }
     var showSuccess by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
-    val currentSyllable = slots.mapNotNull { index -> index?.let { letters[it].char.toString() } }.joinToString("")
+    val currentSyllable = slots.mapNotNull { pos -> pos?.let { letters.first { it.position == pos }.char.toString() } }.joinToString("")
 
     LaunchedEffect(currentSyllable) {
         if (isCompleted) return@LaunchedEffect
         if (currentSyllable.length != targetSyllable.length) return@LaunchedEffect
-        if (currentSyllable == targetSyllable) { isCompleted = true; AudioPlayer.playSFX("correct"); showSuccess = true; delay(SUCCESS_DISPLAY_DELAY_MS); onComplete(true) }
-        else { AudioPlayer.playSFX("wrong"); delay(WRONG_ANSWER_RESET_DELAY_MS); usedLetterIndices.clear(); slots.fill(null); selectedLetterIndex = null }
+        if (currentSyllable == targetSyllable) {
+            isCompleted = true
+            AudioPlayer.playSFX("correct")
+            showSuccess = true
+            delay(SUCCESS_DISPLAY_DELAY_MS)
+            onComplete(true)
+        } else {
+            AudioPlayer.playSFX("wrong")
+            delay(WRONG_ANSWER_RESET_DELAY_MS)
+            usedPositions.clear()
+            slots.fill(null)
+            selectedPosition = null
+        }
     }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().verticalScroll(scrollState).padding(GamePadding)) {
@@ -101,33 +116,48 @@ fun SyllableBuilderGame(targetSyllable: String, onComplete: (correct: Boolean) -
 
         // Слоты
         Row(horizontalArrangement = Arrangement.spacedBy(SlotSpacing), verticalAlignment = Alignment.CenterVertically) {
-            slots.forEachIndexed { index, letterIndex ->
-                val isTargeted = selectedLetterIndex != null && slots[index] == null
-                val borderColor by animateColorAsState(targetValue = when { showSuccess -> FairyGreen; isTargeted -> FairyGold; else -> FairyPurple }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "SlotBorder")
-                SlotView(letter = letterIndex?.let { letters[it].char.toString() }, borderColor = borderColor, isHighlighted = isTargeted, onClick = {
+            slots.forEachIndexed { slotIndex, position ->
+                val isTargeted = selectedPosition != null && slots[slotIndex] == null
+                val borderColor by animateColorAsState(targetValue = when { showSuccess -> FairyGreen; isTargeted -> FairyGold; else -> FairyPurple }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "SlotBorder$slotIndex")
+                val letterChar = position?.let { pos -> letters.first { it.position == pos }.char.toString() }
+                SlotView(letter = letterChar, borderColor = borderColor, isHighlighted = isTargeted, onClick = {
                     if (isCompleted) return@SlotView
-                    val existing = slots[index]
-                    if (existing != null) { usedLetterIndices.remove(existing); slots[index] = null }
-                    else if (selectedLetterIndex != null) { slots[index] = selectedLetterIndex; usedLetterIndices.add(selectedLetterIndex!!); selectedLetterIndex = null }
+                    val existing = slots[slotIndex]
+                    if (existing != null) {
+                        usedPositions.remove(existing)
+                        slots[slotIndex] = null
+                    } else if (selectedPosition != null) {
+                        slots[slotIndex] = selectedPosition
+                        usedPositions.add(selectedPosition!!)
+                        selectedPosition = null
+                    }
                 })
             }
         }
 
         Spacer(modifier = Modifier.height(SlotToLettersSpacer))
 
-        // Кнопки с буквами — зелёные, квадратные
+        // Кнопки с буквами
         Row(horizontalArrangement = Arrangement.spacedBy(LetterButtonSpacing), verticalAlignment = Alignment.CenterVertically) {
             letters.forEach { indexedLetter ->
-                val isUsed = usedLetterIndices.contains(indexedLetter.index)
-                val isSelected = selectedLetterIndex == indexedLetter.index
-                val bgColor by animateColorAsState(targetValue = when { isUsed -> Color.LightGray; isSelected -> FairyGold; else -> FairyGreen }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "LetterBg")
+                val isUsed = usedPositions.contains(indexedLetter.position)
+                val isSelected = selectedPosition == indexedLetter.position
+                val bgColor by animateColorAsState(targetValue = when { isUsed -> Color.LightGray; isSelected -> FairyGold; else -> FairyGreen }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "LetterBg${indexedLetter.position}")
+
+                // ✅ Кнопка передаёт свой position при нажатии
                 LetterButton(char = indexedLetter.char, enabled = !isUsed, backgroundColor = bgColor, onClick = {
                     if (isCompleted) return@LetterButton
-                    if (selectedLetterIndex == indexedLetter.index) selectedLetterIndex = null
-                    else if (!isUsed) {
-                        selectedLetterIndex = indexedLetter.index
+                    if (selectedPosition == indexedLetter.position) {
+                        selectedPosition = null
+                    } else if (!isUsed) {
                         val firstEmpty = slots.indexOf(null)
-                        if (firstEmpty != -1) { slots[firstEmpty] = indexedLetter.index; usedLetterIndices.add(indexedLetter.index); selectedLetterIndex = null }
+                        if (firstEmpty != -1) {
+                            slots[firstEmpty] = indexedLetter.position
+                            usedPositions.add(indexedLetter.position)
+                            selectedPosition = null
+                        } else {
+                            selectedPosition = indexedLetter.position
+                        }
                     }
                 })
             }
@@ -135,7 +165,7 @@ fun SyllableBuilderGame(targetSyllable: String, onComplete: (correct: Boolean) -
 
         Spacer(modifier = Modifier.height(ElementSpacing))
 
-        Button(onClick = { usedLetterIndices.clear(); slots.fill(null); selectedLetterIndex = null }, enabled = !isCompleted && (usedLetterIndices.isNotEmpty() || selectedLetterIndex != null), modifier = Modifier.height(44.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyPink)) { Text("Сбросить", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+        Button(onClick = { usedPositions.clear(); slots.fill(null); selectedPosition = null }, enabled = !isCompleted && (usedPositions.isNotEmpty() || selectedPosition != null), modifier = Modifier.height(44.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyPink)) { Text("Сбросить", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
         Spacer(modifier = Modifier.height(8.dp))
     }
 }

@@ -25,7 +25,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
@@ -69,13 +71,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val ScreenPadding = 10.dp
-private val CharacterSpacer = 6.dp
+private val CharacterSpacer = 4.dp
 private val ElementSpacer = 4.dp
-private val CompleteButtonSpacer = 20.dp
+private val CompleteButtonSpacer = 16.dp
 private const val COMPLETE_BUTTON_WIDTH_FRACTION = 0.5f
-private val CompleteButtonHeight = 46.dp
+private val CompleteButtonHeight = 48.dp
 private val ButtonCornerRadius = 12.dp
-private val CharacterSize = 90
+private val CharacterSize = 80
 private const val TOTAL_STAGES = 3
 private const val CORRECT_NEEDED = 3
 private const val STAGE_TRANSITION_DURATION_MS = 400
@@ -83,14 +85,14 @@ private const val STAR_DISPLAY_DURATION_MS = 500
 private const val STAR_STAGGER_DELAY_MS = 200L
 private val StageProgressHeight = 5.dp
 private val StarFontSize = 32.sp
-private val RiddleTextSize = 16.sp
+private val RiddleTextSize = 15.sp
 private val ProgressTextSize = 13.sp
 private const val RESULT_DELAY_MS = 1500L
-private val LetterButtonSize = 42.dp
-private val SlotSize = 36.dp
-private val LetterFontSize = 22.sp
-private const val MAX_LETTERS_PER_ROW = 9
-private const val MAX_SLOTS_PER_ROW = 10
+private val LetterButtonSize = 46.dp
+private val SlotSize = 40.dp
+private val LetterFontSize = 24.sp
+private const val MAX_LETTERS_PER_ROW = 7
+private const val MAX_SLOTS_PER_ROW = 8
 
 private data class Riddle(val text: String, val answer: String)
 
@@ -221,52 +223,67 @@ private fun BuildWordGame(title: String, onResult: (Boolean) -> Unit) {
 
     LaunchedEffect(correctCount) { if (correctCount >= CORRECT_NEEDED) { delay(500); onResult(true) } }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
+    // Прокрутка для всей игры
+    val scrollState = rememberScrollState()
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth().verticalScroll(scrollState).padding(horizontal = 6.dp)
+    ) {
         Text(text = title, style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = "Правильно: $correctCount из $CORRECT_NEEDED", style = MaterialTheme.typography.bodyMedium.copy(fontSize = ProgressTextSize, fontWeight = FontWeight.Bold), color = FairyPurple, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        Box(modifier = Modifier.fillMaxWidth().background(FairyBlue.copy(alpha = 0.2f), RoundedCornerShape(12.dp)).padding(12.dp), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.fillMaxWidth().background(FairyBlue.copy(alpha = 0.2f), RoundedCornerShape(12.dp)).padding(10.dp), contentAlignment = Alignment.Center) {
             Text(text = currentRiddle.text, style = MaterialTheme.typography.bodyLarge.copy(fontSize = RiddleTextSize, fontWeight = FontWeight.Bold, lineHeight = 22.sp), color = DarkText, textAlign = TextAlign.Center)
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
+        // Слоты
         val slotRows = slots.chunked(MAX_SLOTS_PER_ROW)
         slotRows.forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 row.forEach { letter ->
                     val idx = slots.indexOf(letter)
-                    Box(modifier = Modifier.size(SlotSize).background(if (letter != '_') FairyGold.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.8f), RoundedCornerShape(8.dp)).border(2.dp, if (letter != '_') FairyGold else FairyBlue, RoundedCornerShape(8.dp)).clickable(enabled = letter != '_' && !isLocked) {
-                        if (idx >= 0 && letter != '_') {
-                            val lastUsed = usedLetterIndices.lastOrNull { letterOptions[it] == letter }
-                            if (lastUsed != null) { usedLetterIndices.remove(lastUsed); slots[idx] = '_' }
-                        }
-                    }, contentAlignment = Alignment.Center) { Text(text = if (letter != '_') letter.uppercase() else "", fontSize = LetterFontSize, fontWeight = FontWeight.Bold, color = FairyPurple) }
+                    Box(
+                        modifier = Modifier.size(SlotSize).background(if (letter != '_') FairyGold.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.8f), RoundedCornerShape(8.dp)).border(2.dp, if (letter != '_') FairyGold else FairyBlue, RoundedCornerShape(8.dp)).clickable(enabled = letter != '_' && !isLocked) {
+                            if (idx >= 0 && letter != '_') {
+                                val lastUsed = usedLetterIndices.lastOrNull { letterOptions[it] == letter }
+                                if (lastUsed != null) { usedLetterIndices.remove(lastUsed); slots[idx] = '_' }
+                            }
+                        },
+                        contentAlignment = Alignment.Center
+                    ) { Text(text = if (letter != '_') letter.uppercase() else "", fontSize = LetterFontSize, fontWeight = FontWeight.Bold, color = FairyPurple) }
                 }
             }
             Spacer(modifier = Modifier.height(3.dp))
         }
         Spacer(modifier = Modifier.height(10.dp))
 
+        // Кнопки с буквами
         val letterRows = letterOptions.chunked(MAX_LETTERS_PER_ROW)
         letterRows.forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 row.forEach { letter ->
                     val index = letterOptions.indexOf(letter)
                     val isUsed = usedLetterIndices.contains(index)
-                    Box(modifier = Modifier.size(LetterButtonSize).shadow(if (!isUsed) 3.dp else 0.dp, RoundedCornerShape(10.dp)).clip(RoundedCornerShape(10.dp)).background(if (isUsed) Color.LightGray else FairyBlue).clickable(enabled = !isUsed && !isLocked) {
-                        val firstEmpty = slots.indexOf('_')
-                        if (firstEmpty != -1) { slots[firstEmpty] = letter; usedLetterIndices.add(index) }
-                    }, contentAlignment = Alignment.Center) { Text(text = letter.uppercase(), fontSize = LetterFontSize, fontWeight = FontWeight.Bold, color = if (isUsed) Color.White.copy(alpha = 0.3f) else Color.White) }
+                    Box(
+                        modifier = Modifier.size(LetterButtonSize).shadow(if (!isUsed) 3.dp else 0.dp, RoundedCornerShape(10.dp)).clip(RoundedCornerShape(10.dp)).background(if (isUsed) Color.LightGray else FairyBlue).clickable(enabled = !isUsed && !isLocked) {
+                            val firstEmpty = slots.indexOf('_')
+                            if (firstEmpty != -1) { slots[firstEmpty] = letter; usedLetterIndices.add(index) }
+                        },
+                        contentAlignment = Alignment.Center
+                    ) { Text(text = letter.uppercase(), fontSize = LetterFontSize, fontWeight = FontWeight.Bold, color = if (isUsed) Color.White.copy(alpha = 0.3f) else Color.White) }
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
+        // Кнопки управления
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = { usedLetterIndices.clear(); slots.fill('_') }, enabled = usedLetterIndices.isNotEmpty() && !isLocked, modifier = Modifier.height(42.dp), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyPink)) { Text("Сброс", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+            Button(onClick = { usedLetterIndices.clear(); slots.fill('_') }, enabled = usedLetterIndices.isNotEmpty() && !isLocked, modifier = Modifier.height(44.dp), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyPink)) { Text("Сброс", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
             Button(
                 onClick = {
                     isCorrect = builtWord.equals(currentRiddle.answer, ignoreCase = true)
@@ -278,15 +295,17 @@ private fun BuildWordGame(title: String, onResult: (Boolean) -> Unit) {
                     }
                 },
                 enabled = builtWord.length == answerLength && !isLocked,
-                modifier = Modifier.height(42.dp), shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.height(44.dp), shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = FairyGold)
             ) { Text("Проверить", fontSize = 14.sp, color = DarkText, fontWeight = FontWeight.Bold) }
         }
 
         if (showResult) {
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(text = if (isCorrect) "✓ Правильно!" else "✗ Ответ: ${currentRiddle.answer}", style = MaterialTheme.typography.titleMedium, color = if (isCorrect) FairyGreen else FairyPink, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 

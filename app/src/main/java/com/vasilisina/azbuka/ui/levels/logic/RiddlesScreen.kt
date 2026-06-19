@@ -3,6 +3,7 @@
 package com.vasilisina.azbuka.ui.levels.logic
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +60,7 @@ import com.vasilisina.azbuka.ui.theme.FairyPink
 import com.vasilisina.azbuka.ui.theme.FairyPurple
 import com.vasilisina.azbuka.ui.theme.WhiteBackground
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val ScreenPadding = 16.dp
 private val CharacterSpacer = 24.dp
@@ -196,8 +198,8 @@ private fun TypeRiddleGame(title: String, onResult: (Boolean) -> Unit) {
     var showResult by remember { mutableStateOf(false) }
     var isCorrect by remember { mutableStateOf(false) }
     var isLocked by remember { mutableStateOf(false) }
-
     var currentRiddle by remember { mutableStateOf(AllRiddles.random()) }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(correctCount) {
         if (correctCount >= CORRECT_NEEDED) {
@@ -212,13 +214,11 @@ private fun TypeRiddleGame(title: String, onResult: (Boolean) -> Unit) {
         Text(text = "Правильно: $correctCount из $CORRECT_NEEDED", style = MaterialTheme.typography.bodyMedium.copy(fontSize = ProgressTextSize, fontWeight = FontWeight.Medium), color = FairyGold, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Загадка
         Box(modifier = Modifier.fillMaxWidth().background(FairyPurple.copy(alpha = 0.1f), RoundedCornerShape(20.dp)).padding(20.dp), contentAlignment = Alignment.Center) {
             Text(text = currentRiddle.text, style = MaterialTheme.typography.bodyLarge.copy(fontSize = RiddleTextSize, fontWeight = FontWeight.Medium, lineHeight = 32.sp), color = FairyPurple, textAlign = TextAlign.Center)
         }
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Поле ввода
         OutlinedTextField(
             value = typedAnswer,
             onValueChange = { if (!isLocked) typedAnswer = it },
@@ -227,17 +227,11 @@ private fun TypeRiddleGame(title: String, onResult: (Boolean) -> Unit) {
             textStyle = MaterialTheme.typography.headlineSmall.copy(fontSize = 24.sp, textAlign = TextAlign.Center),
             singleLine = true,
             enabled = !isLocked,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = FairyPurple,
-                unfocusedBorderColor = FairyBlue,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
-            ),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = FairyPurple, unfocusedBorderColor = FairyBlue, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White),
             shape = RoundedCornerShape(16.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Кнопка "Проверить"
         Button(
             onClick = {
                 val cleanAnswer = typedAnswer.trim().lowercase()
@@ -245,19 +239,12 @@ private fun TypeRiddleGame(title: String, onResult: (Boolean) -> Unit) {
                 isCorrect = cleanAnswer == cleanCorrect
                 isLocked = true
                 showResult = true
-                if (isCorrect) {
-                    correctCount++
-                    AudioPlayer.playSFX("correct")
-                } else {
-                    AudioPlayer.playSFX("wrong")
-                }
-                kotlinx.coroutines.MainScope().launch {
+                if (isCorrect) { correctCount++; AudioPlayer.playSFX("correct") } else { AudioPlayer.playSFX("wrong") }
+                coroutineScope.launch {
                     delay(RESULT_DELAY_MS)
                     if (correctCount < CORRECT_NEEDED) {
                         currentRiddle = AllRiddles.random()
-                        typedAnswer = ""
-                        isLocked = false
-                        showResult = false
+                        typedAnswer = ""; isLocked = false; showResult = false
                     }
                 }
             },
@@ -265,19 +252,11 @@ private fun TypeRiddleGame(title: String, onResult: (Boolean) -> Unit) {
             modifier = Modifier.fillMaxWidth(0.6f).height(50.dp),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(containerColor = FairyGold)
-        ) {
-            Text("Проверить", style = MaterialTheme.typography.labelLarge, color = DarkText)
-        }
+        ) { Text("Проверить", style = MaterialTheme.typography.labelLarge, color = DarkText) }
 
-        // Результат
         if (showResult) {
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = if (isCorrect) "✓ Правильно!" else "✗ Ответ: ${currentRiddle.answer}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isCorrect) FairyGreen else FairyPink,
-                textAlign = TextAlign.Center
-            )
+            Text(text = if (isCorrect) "✓ Правильно!" else "✗ Ответ: ${currentRiddle.answer}", style = MaterialTheme.typography.bodyMedium, color = if (isCorrect) FairyGreen else FairyPink, textAlign = TextAlign.Center)
         }
     }
 }

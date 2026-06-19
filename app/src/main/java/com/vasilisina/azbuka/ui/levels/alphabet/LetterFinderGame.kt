@@ -52,10 +52,10 @@ import com.vasilisina.azbuka.ui.theme.FairyGreen
 import com.vasilisina.azbuka.ui.theme.FairyPurple
 import kotlinx.coroutines.delay
 
-private val CellSize = 56.dp
-private val CellCornerRadius = 12.dp
-private val CellHorizontalSpacing = 8.dp
-private val CellVerticalSpacing = 4.dp
+private val CellSize = 64.dp
+private val CellCornerRadius = 14.dp
+private val CellHorizontalSpacing = 10.dp
+private val CellVerticalSpacing = 6.dp
 private val GamePadding = 10.dp
 private val GridTopSpacer = 12.dp
 private const val TARGET_LETTER_COUNT = 5
@@ -64,10 +64,10 @@ private const val CELLS_PER_ROW = 5
 private const val CELL_STAGGER_DELAY_MS = 40L
 private const val CELL_APPEAR_DURATION_MS = 250
 private const val COLOR_ANIMATION_DURATION_MS = 300
-private val CellElevation = 3.dp
+private val CellElevation = 4.dp
 private val FoundBorderWidth = 2.dp
-private val CellFontSize = 26.sp
-private val CounterFontSize = 16.sp
+private val CellFontSize = 28.sp
+private val CounterFontSize = 17.sp
 
 @Composable
 fun LetterFinderGame(targetLetter: String, onComplete: (Boolean) -> Unit) {
@@ -90,18 +90,15 @@ fun LetterFinderGame(targetLetter: String, onComplete: (Boolean) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState).padding(GamePadding), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = "Найди все буквы «$targetLetter»!", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(6.dp))
-
         FoundCounter(found = foundCount, total = TARGET_LETTER_COUNT, remaining = remainingCount)
         Spacer(modifier = Modifier.height(GridTopSpacer))
 
-        // Сетка 5×2
         val rows = symbols.chunked(CELLS_PER_ROW)
         rows.forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(CellHorizontalSpacing), modifier = Modifier.padding(vertical = CellVerticalSpacing)) {
                 row.forEach { letter ->
                     val cellIndex = symbols.indexOf(letter)
                     val appearDelay = cellIndex * CELL_STAGGER_DELAY_MS
-
                     AnimatedLetterCell(letter = letter, targetLetter = targetLetter, isClicked = clickedStates.containsKey(cellIndex), isCorrect = clickedStates[cellIndex] ?: false, appearDelay = appearDelay, onTap = { correct ->
                         if (!isCompleted && !clickedStates.containsKey(cellIndex)) {
                             clickedStates[cellIndex] = correct

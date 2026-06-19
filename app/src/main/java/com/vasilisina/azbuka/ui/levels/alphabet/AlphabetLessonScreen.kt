@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -74,9 +75,9 @@ private val AlphabetData = listOf(
 
 private const val TOTAL_LETTERS = 33
 
-private val ScreenPadding = 12.dp
-private val CharacterSpacer = 8.dp
-private val StageSpacer = 10.dp
+private val ScreenPadding = 10.dp
+private val CharacterWidth = 140.dp
+private val StageSpacer = 8.dp
 private val CompleteButtonSpacer = 20.dp
 private const val COMPLETE_BUTTON_WIDTH_FRACTION = 0.5f
 private val LetterFontSize = 56.sp
@@ -111,48 +112,46 @@ fun AlphabetLessonScreen(level: Int = 1, onComplete: (Int) -> Unit) {
         Image(painter = painterResource(id = R.drawable.bg_level_1_alphabet), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.85f)))
 
-        Column(modifier = Modifier.fillMaxSize().padding(ScreenPadding), horizontalAlignment = Alignment.CenterHorizontally) {
-            LetterProgressBar(progress = letterProgress, currentLetter = currentLetterIndex + 1, total = TOTAL_LETTERS)
-            Spacer(modifier = Modifier.height(StageSpacer))
+        // Основной ряд: Василиса слева + игра справа
+        Row(modifier = Modifier.fillMaxSize().padding(ScreenPadding), verticalAlignment = Alignment.CenterVertically) {
+            // Василиса слева
+            CharacterView(state = vasilisaState, sizeDp = 160)
 
-            Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                when (stage) {
-                    0 -> ShowLetterStage(letter = targetLetter, onDone = { stage = 1; vasilisaState = vasilisaState.idle() })
-                    1 -> {
-                        @Suppress("DEPRECATION")
-                        LetterFinderGame(targetLetter = targetLetter, onComplete = { foundAll ->
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Игровая область справа
+            Column(modifier = Modifier.weight(1f).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                LetterProgressBar(progress = letterProgress, currentLetter = currentLetterIndex + 1, total = TOTAL_LETTERS)
+                Spacer(modifier = Modifier.height(StageSpacer))
+
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    when (stage) {
+                        0 -> ShowLetterStage(letter = targetLetter, onDone = { stage = 1; vasilisaState = vasilisaState.idle() })
+                        1 -> LetterFinderGame(targetLetter = targetLetter, onComplete = { foundAll ->
                             if (foundAll) earnedStars++
                             if (skipWordStage) advanceOrComplete(currentLetterIndex, earnedStars, level, onComplete) { newIndex, _ -> currentLetterIndex = newIndex; stage = 0 }
                             else stage = 2
                             vasilisaState = vasilisaState.clap()
                         })
-                    }
-                    2 -> {
-                        @Suppress("DEPRECATION")
-                        SyllableBuilderGame(targetSyllable = targetWord, onComplete = { correct ->
+                        2 -> SyllableBuilderGame(targetSyllable = targetWord, onComplete = { correct ->
                             if (correct) earnedStars++
                             advanceOrComplete(currentLetterIndex, earnedStars, level, onComplete) { newIndex, _ -> currentLetterIndex = newIndex; stage = 0 }
                             vasilisaState = vasilisaState.clap()
                         })
+                        3 -> LevelComplete(earnedStars = earnedStars, onComplete = {
+                            GameState.completeLevel(level, earnedStars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
+                            onComplete(earnedStars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
+                        })
                     }
-                    3 -> LevelComplete(earnedStars = earnedStars, onComplete = {
-                        GameState.completeLevel(level, earnedStars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
-                        onComplete(earnedStars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
-                    })
                 }
             }
-
-            Spacer(modifier = Modifier.height(CharacterSpacer))
-            CharacterView(state = vasilisaState, sizeDp = 100)
         }
     }
 }
 
 private fun advanceOrComplete(currentIndex: Int, stars: Int, level: Int, onComplete: (Int) -> Unit, onAdvance: (Int, Int) -> Unit) {
-    if (currentIndex >= TOTAL_LETTERS - 1) {
-        GameState.completeLevel(level, stars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
-        onComplete(stars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
-    } else onAdvance(currentIndex + 1, stars)
+    if (currentIndex >= TOTAL_LETTERS - 1) { GameState.completeLevel(level, stars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL)); onComplete(stars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL)) }
+    else onAdvance(currentIndex + 1, stars)
 }
 
 @Composable
@@ -168,7 +167,6 @@ private fun LetterProgressBar(progress: Float, currentLetter: Int, total: Int) {
 fun ShowLetterStage(letter: String, onDone: () -> Unit) {
     var isLetterVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { delay(LETTER_SHOW_DELAY_MS); isLetterVisible = true; delay(LETTER_DISPLAY_DURATION_MS); onDone() }
-
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Text(text = "Знакомимся с буквой!", style = MaterialTheme.typography.headlineMedium, color = DarkText, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(16.dp))
@@ -186,7 +184,6 @@ fun ShowLetterStage(letter: String, onDone: () -> Unit) {
 private fun LevelComplete(earnedStars: Int, onComplete: () -> Unit) {
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { delay(200); isVisible = true }
-
     AnimatedVisibility(visible = isVisible, enter = scaleIn(initialScale = 0.5f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + fadeIn(tween(400))) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             StarDisplay(earnedStars = earnedStars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))

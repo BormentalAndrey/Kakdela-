@@ -262,8 +262,22 @@ private fun FinalAlbum(vasilisaState: CharacterState, kuzyaState: CharacterState
 
         Spacer(modifier = Modifier.height(32.dp))
         AnimatedVisibility(visible = showContent, enter = fadeIn(tween(600, delayMillis = 1200))) {
-            Button(onClick = { AudioPlayer.playSFX("click"); onDone() }, modifier = Modifier.fillMaxWidth(0.6f).height(60.dp), shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyPurple, contentColor = Color.White), elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)) {
-                Text("Завершить игру", style = MaterialTheme.typography.labelLarge)
+            // ИСПРАВЛЕНО: адаптивная ширина кнопки под любой экран
+            Button(
+                onClick = { AudioPlayer.playSFX("click"); onDone() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
+                    .height(60.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = FairyPurple, contentColor = Color.White),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)
+            ) {
+                Text(
+                    text = "Завершить",
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1
+                )
             }
         }
     }

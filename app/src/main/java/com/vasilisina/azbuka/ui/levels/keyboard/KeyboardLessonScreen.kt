@@ -9,6 +9,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,7 +39,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,12 +56,7 @@ import com.vasilisina.azbuka.ui.theme.FairyBlue
 import com.vasilisina.azbuka.ui.theme.FairyGold
 import com.vasilisina.azbuka.ui.theme.FairyGreen
 import com.vasilisina.azbuka.ui.theme.FairyPurple
-import com.vasilisina.azbuka.ui.theme.WhiteBackground
 import kotlinx.coroutines.delay
-
-// -------------------------------------------------------------------------
-// Константы
-// -------------------------------------------------------------------------
 
 private val ScreenPadding = 16.dp
 private val CharacterSpacer = 24.dp
@@ -75,37 +73,36 @@ private const val STAR_STAGGER_DELAY_MS = 200L
 private val StageProgressHeight = 8.dp
 private val StarFontSize = 48.sp
 
-// -------------------------------------------------------------------------
-// Главный экран
-// -------------------------------------------------------------------------
-
 @Composable
-fun KeyboardLessonScreen(
-    level: Int = 3,
-    onComplete: (stars: Int) -> Unit
-) {
+fun KeyboardLessonScreen(level: Int = 3, onComplete: (stars: Int) -> Unit) {
     val context = LocalContext.current
     var stage by remember { mutableIntStateOf(0) }
     var earnedStars by remember { mutableIntStateOf(0) }
-
-    var vasilisaState by remember {
-        mutableStateOf(CharacterState("Василиса", CharacterEmotion.HAPPY))
-    }
+    var vasilisaState by remember { mutableStateOf(CharacterState("Василиса", CharacterEmotion.HAPPY)) }
 
     DisposableEffect(Unit) {
-        try {
-            AudioPlayer.playMusic(context, R.raw.music_level3, loop = true)
-        } catch (_: Exception) { }
+        try { AudioPlayer.playMusic(context, R.raw.music_level3, loop = true) } catch (_: Exception) { }
         onDispose { AudioPlayer.stopMusic() }
     }
 
     val stageProgress = (stage.coerceIn(0, TOTAL_STAGES)).toFloat() / TOTAL_STAGES
 
-    Box(
-        modifier = Modifier.fillMaxSize().background(WhiteBackground).statusBarsPadding().navigationBarsPadding().padding(ScreenPadding),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+    Box(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        // Фон уровня
+        Image(
+            painter = painterResource(id = R.drawable.bg_level_3_keyboard),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        // Полупрозрачный слой для читаемости
+        Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.7f)))
+
+        Column(
+            modifier = Modifier.fillMaxSize().padding(ScreenPadding),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
             CharacterView(state = vasilisaState, sizeDp = CharacterSize)
             Spacer(modifier = Modifier.height(CharacterSpacer))
             StageProgressIndicator(progress = stageProgress, currentStage = stage)
@@ -123,40 +120,20 @@ fun KeyboardLessonScreen(
     }
 }
 
-// -------------------------------------------------------------------------
-// Индикатор прогресса
-// -------------------------------------------------------------------------
-
 @Composable
 private fun StageProgressIndicator(progress: Float, currentStage: Int) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth(0.8f)) {
-        Text(
-            text = if (currentStage < TOTAL_STAGES) "Этап ${currentStage + 1} из $TOTAL_STAGES" else "Завершено!",
-            style = MaterialTheme.typography.bodySmall, color = DarkText.copy(alpha = 0.7f), textAlign = TextAlign.Center
-        )
+        Text(text = if (currentStage < TOTAL_STAGES) "Этап ${currentStage + 1} из $TOTAL_STAGES" else "Завершено!", style = MaterialTheme.typography.bodySmall, color = DarkText.copy(alpha = 0.7f), textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(4.dp))
-        // ИСПРАВЛЕНО: Float вместо лямбды
-        LinearProgressIndicator(
-            progress = progress,
-            modifier = Modifier.fillMaxWidth().height(StageProgressHeight),
-            color = FairyGold, trackColor = FairyBlue.copy(alpha = 0.3f)
-        )
+        LinearProgressIndicator(progress = progress, modifier = Modifier.fillMaxWidth().height(StageProgressHeight), color = FairyGold, trackColor = FairyBlue.copy(alpha = 0.3f))
     }
 }
-
-// -------------------------------------------------------------------------
-// Завершение
-// -------------------------------------------------------------------------
 
 @Composable
 private fun LevelComplete(earnedStars: Int, onComplete: () -> Unit) {
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { delay(200); isVisible = true }
-
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = scaleIn(initialScale = 0.5f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + fadeIn(tween(STAGE_TRANSITION_DURATION_MS))
-    ) {
+    AnimatedVisibility(visible = isVisible, enter = scaleIn(initialScale = 0.5f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + fadeIn(tween(STAGE_TRANSITION_DURATION_MS))) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             StarDisplay(earnedStars = earnedStars)
             Spacer(modifier = Modifier.height(ElementSpacer))
@@ -164,20 +141,10 @@ private fun LevelComplete(earnedStars: Int, onComplete: () -> Unit) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = "Уровень пройден!", style = MaterialTheme.typography.bodyLarge, color = DarkText.copy(alpha = 0.7f), textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(CompleteButtonSpacer))
-            Button(
-                onClick = { AudioPlayer.playSFX("click"); onComplete() },
-                modifier = Modifier.fillMaxWidth(COMPLETE_BUTTON_WIDTH_FRACTION).height(CompleteButtonHeight),
-                shape = RoundedCornerShape(ButtonCornerRadius),
-                colors = ButtonDefaults.buttonColors(containerColor = FairyGreen, contentColor = DarkText),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)
-            ) { Text("Далее →", style = MaterialTheme.typography.labelLarge) }
+            Button(onClick = { AudioPlayer.playSFX("click"); onComplete() }, modifier = Modifier.fillMaxWidth(COMPLETE_BUTTON_WIDTH_FRACTION).height(CompleteButtonHeight), shape = RoundedCornerShape(ButtonCornerRadius), colors = ButtonDefaults.buttonColors(containerColor = FairyGreen, contentColor = DarkText), elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)) { Text("Далее →", style = MaterialTheme.typography.labelLarge) }
         }
     }
 }
-
-// -------------------------------------------------------------------------
-// Звёзды
-// -------------------------------------------------------------------------
 
 @Composable
 private fun StarDisplay(earnedStars: Int) {

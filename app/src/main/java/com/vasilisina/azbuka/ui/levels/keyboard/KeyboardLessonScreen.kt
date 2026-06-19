@@ -11,7 +11,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,16 +20,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -63,7 +56,6 @@ import com.vasilisina.azbuka.ui.theme.DarkText
 import com.vasilisina.azbuka.ui.theme.FairyBlue
 import com.vasilisina.azbuka.ui.theme.FairyGold
 import com.vasilisina.azbuka.ui.theme.FairyGreen
-import com.vasilisina.azbuka.ui.theme.FairyPurple
 import kotlinx.coroutines.delay
 
 private val ScreenPadding = 12.dp
@@ -80,12 +72,6 @@ private const val STAR_DISPLAY_DURATION_MS = 500
 private const val STAR_STAGGER_DELAY_MS = 200L
 private val StageProgressHeight = 6.dp
 private val StarFontSize = 36.sp
-
-private val RussianAlphabet = listOf(
-    "Й", "Ц", "У", "К", "Е", "Н", "Г", "Ш", "Щ", "З", "Х", "Ъ",
-    "Ф", "Ы", "В", "А", "П", "Р", "О", "Л", "Д", "Ж", "Э",
-    "Я", "Ч", "С", "М", "И", "Т", "Ь", "Б", "Ю", "Ё"
-)
 
 @Composable
 fun KeyboardLessonScreen(level: Int = 3, onComplete: (stars: Int) -> Unit) {
@@ -129,106 +115,6 @@ private fun StageProgressIndicator(progress: Float, currentStage: Int) {
         Text(text = if (currentStage < TOTAL_STAGES) "Этап ${currentStage + 1} из $TOTAL_STAGES" else "Завершено!", style = MaterialTheme.typography.bodyMedium, color = DarkText, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(4.dp))
         LinearProgressIndicator(progress = progress, modifier = Modifier.fillMaxWidth().height(StageProgressHeight).clip(RoundedCornerShape(50)), color = FairyGold, trackColor = FairyBlue.copy(alpha = 0.3f))
-    }
-}
-
-@Composable
-fun VirtualKeyboard(onKeyPress: (String) -> Unit) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 40.dp),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        items(RussianAlphabet) { letter ->
-            Card(
-                modifier = Modifier.height(48.dp).clickable { AudioPlayer.playSFX("click"); onKeyPress(letter) },
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = FairyBlue.copy(alpha = 0.2f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = letter, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DarkText)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun KeyboardGame(onDone: () -> Unit) {
-    val targetLetter = remember { RussianAlphabet.random() }
-    var showSuccess by remember { mutableStateOf(false) }
-
-    LaunchedEffect(showSuccess) { if (showSuccess) { AudioPlayer.playSFX("correct"); delay(1000); onDone() } }
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text(text = "Найди букву", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(12.dp))
-        Box(modifier = Modifier.size(80.dp).background(if (showSuccess) FairyGreen else FairyGold, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
-            Text(text = targetLetter, fontSize = 52.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-        }
-        Spacer(modifier = Modifier.height(20.dp))
-        VirtualKeyboard(onKeyPress = { key -> if (key == targetLetter) showSuccess = true else AudioPlayer.playSFX("wrong") })
-    }
-}
-
-@Composable
-fun WordBuilderGame(onResult: (Boolean) -> Unit) {
-    val words = listOf("КОТ", "ДОМ", "ЛЕС", "МАК", "СОК")
-    val targetWord = remember { words.random() }
-    var typedWord by remember { mutableStateOf("") }
-
-    LaunchedEffect(typedWord) { if (typedWord == targetWord) { AudioPlayer.playSFX("correct"); delay(1000); onResult(true) } }
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text(text = "Напечатай слово", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(text = targetWord, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = FairyPurple.copy(alpha = 0.5f))
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            targetWord.forEachIndexed { index, _ ->
-                val char = typedWord.getOrNull(index)?.toString() ?: ""
-                Box(modifier = Modifier.size(50.dp).background(if (char.isNotEmpty()) FairyGreen else FairyBlue.copy(alpha = 0.2f), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                    Text(text = char, fontSize = 30.sp, fontWeight = FontWeight.Bold, color = if (char.isNotEmpty()) Color.White else DarkText)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-        VirtualKeyboard(onKeyPress = { key ->
-            if (typedWord.length < targetWord.length) {
-                if (key == targetWord[typedWord.length].toString()) typedWord += key else AudioPlayer.playSFX("wrong")
-            }
-        })
-    }
-}
-
-@Composable
-fun FreeTypingGame(onDone: () -> Unit) {
-    var typedLetters by remember { mutableStateOf("") }
-    val maxLetters = 5
-
-    LaunchedEffect(typedLetters) { if (typedLetters.length == maxLetters) { AudioPlayer.playSFX("correct"); delay(1500); onDone() } }
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text(text = "Напечатай любые $maxLetters букв!", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            repeat(maxLetters) { index ->
-                val char = typedLetters.getOrNull(index)?.toString() ?: ""
-                Box(modifier = Modifier.size(44.dp).background(if (char.isNotEmpty()) FairyGold else FairyBlue.copy(alpha = 0.2f), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                    AnimatedVisibility(visible = char.isNotEmpty(), enter = scaleIn(spring(dampingRatio = Spring.DampingRatioHighBouncy))) {
-                        Text(text = char, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-        VirtualKeyboard(onKeyPress = { key -> if (typedLetters.length < maxLetters) typedLetters += key })
     }
 }
 

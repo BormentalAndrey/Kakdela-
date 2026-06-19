@@ -23,7 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -58,7 +58,7 @@ import kotlinx.coroutines.launch
 
 private val ItemSize = 80.dp
 private val ItemCornerRadius = 16.dp
-private val ItemSpacing = 12.dp
+private val ItemSpacing = 8.dp
 private val GamePadding = 16.dp
 private val ItemsTopSpacer = 32.dp
 private val HintSpacer = 8.dp
@@ -139,9 +139,13 @@ fun FindOddOneGame(onResult: (correct: Boolean) -> Unit) {
             currentSet.forEachIndexed { index, item ->
                 val isSelected = selectedIndex == index
                 val isCorrectItem = index == oddIndex
-                AnimatedGameItem(item = item, isSelected = isSelected, isCorrectItem = isCorrectItem, isLocked = isLocked, appearDelay = ITEM_STAGGER_DELAY_MS * index, showItems = showItems, onClick = {
-                    if (!isLocked) { selectedIndex = index; isLocked = true; AudioPlayer.playSFX(if (isCorrectItem) "correct" else "wrong"); coroutineScope.launch { delay(RESULT_DELAY_MS); onResult(isCorrectItem) } }
-                })
+                AnimatedGameItem(
+                    modifier = Modifier.weight(1f),
+                    item = item, isSelected = isSelected, isCorrectItem = isCorrectItem, isLocked = isLocked,
+                    appearDelay = ITEM_STAGGER_DELAY_MS * index, showItems = showItems, onClick = {
+                        if (!isLocked) { selectedIndex = index; isLocked = true; AudioPlayer.playSFX(if (isCorrectItem) "correct" else "wrong"); coroutineScope.launch { delay(RESULT_DELAY_MS); onResult(isCorrectItem) } }
+                    }
+                )
             }
         }
 
@@ -154,23 +158,34 @@ fun FindOddOneGame(onResult: (correct: Boolean) -> Unit) {
 }
 
 @Composable
-private fun AnimatedGameItem(item: GameItem, isSelected: Boolean, isCorrectItem: Boolean, isLocked: Boolean, appearDelay: Long, showItems: Boolean, onClick: () -> Unit) {
+private fun AnimatedGameItem(
+    modifier: Modifier = Modifier,
+    item: GameItem, isSelected: Boolean, isCorrectItem: Boolean, isLocked: Boolean,
+    appearDelay: Long, showItems: Boolean, onClick: () -> Unit
+) {
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(showItems) { if (showItems) { delay(appearDelay); isVisible = true } }
     AnimatedVisibility(visible = isVisible, enter = scaleIn(initialScale = 0.3f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + fadeIn(animationSpec = tween(ITEM_APPEAR_DURATION_MS))) {
-        GameItemCell(item = item, isSelected = isSelected, isCorrectItem = isCorrectItem, isLocked = isLocked, onClick = onClick)
+        GameItemCell(modifier = modifier, item = item, isSelected = isSelected, isCorrectItem = isCorrectItem, isLocked = isLocked, onClick = onClick)
     }
 }
 
 @Composable
-private fun GameItemCell(item: GameItem, isSelected: Boolean, isCorrectItem: Boolean, isLocked: Boolean, onClick: () -> Unit) {
+private fun GameItemCell(
+    modifier: Modifier = Modifier,
+    item: GameItem, isSelected: Boolean, isCorrectItem: Boolean, isLocked: Boolean, onClick: () -> Unit
+) {
     val backgroundColor by animateColorAsState(targetValue = when { isSelected && isCorrectItem -> FairyGreen; isSelected && !isCorrectItem -> Color.Red.copy(alpha = 0.7f); isLocked && isCorrectItem -> FairyGreen.copy(alpha = 0.3f); else -> FairyBlue }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "Bg")
     val borderColor by animateColorAsState(targetValue = when { isSelected -> FairyGold; isLocked && isCorrectItem && !isSelected -> FairyGreen; else -> Color.Transparent }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "Border")
     val elevation = if (isSelected) ItemSelectedElevation else ItemElevation
 
-    // ИСПРАВЛЕНО: weight внутри RowScope — работает
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-        Box(modifier = Modifier.size(ItemSize).shadow(elevation, RoundedCornerShape(ItemCornerRadius)).background(backgroundColor, RoundedCornerShape(ItemCornerRadius)).then(if (borderColor != Color.Transparent) Modifier.border(if (isSelected) SelectedBorderWidth else CorrectBorderWidth, borderColor, RoundedCornerShape(ItemCornerRadius)) else Modifier).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = !isLocked) { onClick() }, contentAlignment = Alignment.Center) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
+        Box(
+            modifier = Modifier.size(ItemSize).shadow(elevation, RoundedCornerShape(ItemCornerRadius)).background(backgroundColor, RoundedCornerShape(ItemCornerRadius))
+                .then(if (borderColor != Color.Transparent) Modifier.border(if (isSelected) SelectedBorderWidth else CorrectBorderWidth, borderColor, RoundedCornerShape(ItemCornerRadius)) else Modifier)
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = !isLocked) { onClick() },
+            contentAlignment = Alignment.Center
+        ) {
             Image(painter = painterResource(id = item.imageRes), contentDescription = item.name, modifier = Modifier.size(ImageInsideSize), contentScale = ContentScale.Fit)
         }
         Spacer(modifier = Modifier.height(4.dp))

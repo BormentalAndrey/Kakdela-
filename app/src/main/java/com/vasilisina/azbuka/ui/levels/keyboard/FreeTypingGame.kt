@@ -56,26 +56,25 @@ import kotlinx.coroutines.delay
 private val KeyboardLetters = listOf("А", "О", "У", "М", "П", "Р", "С", "Т", "К", "В", "Л", "Н")
 private const val MAX_TYPED_LENGTH = 10
 private const val GRID_COLUMNS = 4
-private val KeySize = 60.dp
+private val KeySize = 64.dp
 private val KeyCornerRadius = 14.dp
 private val InputFieldCornerRadius = 14.dp
 private val InputFieldHeight = 56.dp
 private const val INPUT_FIELD_WIDTH_FRACTION = 0.85f
 private val GridSpacing = 8.dp
 private val ScreenPadding = 10.dp
-private val InputFieldTopSpacer = 16.dp
-private val KeyboardTopSpacer = 16.dp
-private val ControlsTopSpacer = 12.dp
+private val InputFieldTopSpacer = 14.dp
+private val KeyboardTopSpacer = 14.dp
+private val ControlsTopSpacer = 10.dp
 private val InputFieldInnerPadding = 12.dp
 private const val COLOR_ANIMATION_DURATION_MS = 200
 private const val KEY_STAGGER_DELAY_MS = 25L
 private const val KEY_APPEAR_DURATION_MS = 250
 private val KeyElevation = 3.dp
-private val KeyPressedElevation = 2.dp
 private val InputFieldElevation = 2.dp
-private val KeyFontSize = 24.sp
+private val KeyFontSize = 26.sp
 private val InputFieldFontSize = 28.sp
-private val ControlButtonFontSize = 16.sp
+private val ControlButtonFontSize = 15.sp
 private val PlaceholderColor = Color.LightGray.copy(alpha = 0.5f)
 
 @Composable
@@ -94,7 +93,6 @@ fun FreeTypingGame(onDone: () -> Unit) {
         Text(text = "Напечатай что хочешь!", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(InputFieldTopSpacer))
 
-        // Поле ввода
         Box(modifier = Modifier.fillMaxWidth(INPUT_FIELD_WIDTH_FRACTION).height(InputFieldHeight).shadow(InputFieldElevation, RoundedCornerShape(InputFieldCornerRadius)).background(Color.White, RoundedCornerShape(InputFieldCornerRadius)).border(2.dp, inputFieldBorderColor, RoundedCornerShape(InputFieldCornerRadius)).padding(InputFieldInnerPadding), contentAlignment = Alignment.Center) {
             if (typedText.isEmpty()) Text(text = "Нажми на букву...", style = MaterialTheme.typography.bodyLarge.copy(fontSize = InputFieldFontSize, fontWeight = FontWeight.Light), color = PlaceholderColor, textAlign = TextAlign.Center)
             else Text(text = typedText, style = MaterialTheme.typography.headlineLarge.copy(fontSize = InputFieldFontSize, fontWeight = FontWeight.Bold), color = inputTextColor, textAlign = TextAlign.Center)
@@ -117,10 +115,9 @@ fun FreeTypingGame(onDone: () -> Unit) {
 
         Spacer(modifier = Modifier.height(ControlsTopSpacer))
 
-        // Кнопки управления
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Button(onClick = { if (typedText.isNotEmpty()) { typedText = typedText.dropLast(1); AudioPlayer.playSFX("click") } }, enabled = typedText.isNotEmpty(), modifier = Modifier.height(44.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyPink)) { Text("Стереть", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
-            Button(onClick = { AudioPlayer.playSFX("click"); onDone() }, modifier = Modifier.height(44.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyGreen)) { Text("Готово", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = DarkText) }
+            Button(onClick = { if (typedText.isNotEmpty()) { typedText = typedText.dropLast(1); AudioPlayer.playSFX("click") } }, enabled = typedText.isNotEmpty(), modifier = Modifier.height(44.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyPink)) { Text("Стереть", fontSize = ControlButtonFontSize, fontWeight = FontWeight.Bold) }
+            Button(onClick = { AudioPlayer.playSFX("click"); onDone() }, modifier = Modifier.height(44.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyGreen)) { Text("Готово", fontSize = ControlButtonFontSize, fontWeight = FontWeight.Bold, color = DarkText) }
         }
         Spacer(modifier = Modifier.height(8.dp))
     }

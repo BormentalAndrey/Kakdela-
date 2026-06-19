@@ -177,7 +177,7 @@ fun RiddlesScreen(level: Int = 5, onComplete: (stars: Int) -> Unit) {
     val stageProgress = (stage.coerceIn(0, TOTAL_STAGES)).toFloat() / TOTAL_STAGES
 
     Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-        Image(painter = painterResource(id = R.drawable.bg_level_4_logic), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        Image(painter = painterResource(id = R.drawable.bg_level_6_logic), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.85f)))
 
         Column(modifier = Modifier.fillMaxSize().padding(ScreenPadding), horizontalAlignment = Alignment.CenterHorizontally) {

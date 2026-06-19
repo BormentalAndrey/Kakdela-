@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -52,10 +51,6 @@ import com.vasilisina.azbuka.ui.theme.FairyPurple
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// -------------------------------------------------------------------------
-// Константы
-// -------------------------------------------------------------------------
-
 private val ItemSize = 80.dp
 private val ItemCornerRadius = 16.dp
 private val ItemSpacing = 12.dp
@@ -74,15 +69,7 @@ private val EmojiFontSize = 40.sp
 private val HintFontSize = 16.sp
 private val CategoryFontSize = 14.sp
 
-// -------------------------------------------------------------------------
-// Модель
-// -------------------------------------------------------------------------
-
 private data class GameItem(val emoji: String, val category: String)
-
-// -------------------------------------------------------------------------
-// Наборы
-// -------------------------------------------------------------------------
 
 private val ItemSets = listOf(
     listOf(GameItem("🍎", "Фрукты"), GameItem("🍌", "Фрукты"), GameItem("🍊", "Фрукты"), GameItem("🚗", "Транспорт")),
@@ -92,23 +79,14 @@ private val ItemSets = listOf(
     listOf(GameItem("⚽", "Спорт"), GameItem("🏀", "Спорт"), GameItem("🎾", "Спорт"), GameItem("🎸", "Музыка"))
 )
 
-// -------------------------------------------------------------------------
-// Игра
-// -------------------------------------------------------------------------
-
 @Composable
 fun FindOddOneGame(onResult: (correct: Boolean) -> Unit) {
     val currentSet = remember { ItemSets.random() }
-
-    val oddIndex = remember(currentSet) {
-        currentSet.indexOfFirst { item -> currentSet.count { it.category == item.category } == 1 }
-    }
-
+    val oddIndex = remember(currentSet) { currentSet.indexOfFirst { item -> currentSet.count { it.category == item.category } == 1 } }
     var selectedIndex by remember { mutableIntStateOf(-1) }
     var isLocked by remember { mutableStateOf(false) }
     var showItems by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-
     LaunchedEffect(Unit) { showItems = true }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(GamePadding)) {
@@ -121,15 +99,8 @@ fun FindOddOneGame(onResult: (correct: Boolean) -> Unit) {
             currentSet.forEachIndexed { index, item ->
                 val isSelected = selectedIndex == index
                 val isCorrectItem = index == oddIndex
-                val appearDelay = ITEM_STAGGER_DELAY_MS * index
-
-                AnimatedGameItem(item = item, isSelected = isSelected, isCorrectItem = isCorrectItem, isLocked = isLocked, appearDelay = appearDelay, showItems = showItems, onClick = {
-                    if (!isLocked) {
-                        selectedIndex = index
-                        isLocked = true
-                        AudioPlayer.playSFX(if (isCorrectItem) "correct" else "wrong")
-                        coroutineScope.launch { delay(RESULT_DELAY_MS); onResult(isCorrectItem) }
-                    }
+                AnimatedGameItem(item = item, isSelected = isSelected, isCorrectItem = isCorrectItem, isLocked = isLocked, appearDelay = ITEM_STAGGER_DELAY_MS * index, showItems = showItems, onClick = {
+                    if (!isLocked) { selectedIndex = index; isLocked = true; AudioPlayer.playSFX(if (isCorrectItem) "correct" else "wrong"); coroutineScope.launch { delay(RESULT_DELAY_MS); onResult(isCorrectItem) } }
                 })
             }
         }
@@ -137,17 +108,10 @@ fun FindOddOneGame(onResult: (correct: Boolean) -> Unit) {
         if (isLocked) {
             Spacer(modifier = Modifier.height(16.dp))
             val correctItem = currentSet[oddIndex]
-            Text(
-                text = if (selectedIndex == oddIndex) "Правильно! Лишний предмет — ${correctItem.emoji} (${correctItem.category})" else "Лишний предмет — ${correctItem.emoji} (${correctItem.category})",
-                style = MaterialTheme.typography.bodyMedium, color = if (selectedIndex == oddIndex) FairyGreen else FairyPink, textAlign = TextAlign.Center
-            )
+            Text(text = if (selectedIndex == oddIndex) "Правильно! Лишний предмет — ${correctItem.emoji} (${correctItem.category})" else "Лишний предмет — ${correctItem.emoji} (${correctItem.category})", style = MaterialTheme.typography.bodyMedium, color = if (selectedIndex == oddIndex) FairyGreen else FairyPink, textAlign = TextAlign.Center)
         }
     }
 }
-
-// -------------------------------------------------------------------------
-// Анимированный предмет
-// -------------------------------------------------------------------------
 
 @Composable
 private fun AnimatedGameItem(item: GameItem, isSelected: Boolean, isCorrectItem: Boolean, isLocked: Boolean, appearDelay: Long, showItems: Boolean, onClick: () -> Unit) {
@@ -158,41 +122,18 @@ private fun AnimatedGameItem(item: GameItem, isSelected: Boolean, isCorrectItem:
     }
 }
 
-// -------------------------------------------------------------------------
-// Ячейка
-// -------------------------------------------------------------------------
-
 @Composable
 private fun GameItemCell(item: GameItem, isSelected: Boolean, isCorrectItem: Boolean, isLocked: Boolean, onClick: () -> Unit) {
-    val backgroundColor by animateColorAsState(
-        targetValue = when {
-            isSelected && isCorrectItem -> FairyGreen
-            isSelected && !isCorrectItem -> Color.Red.copy(alpha = 0.7f)
-            isLocked && isCorrectItem -> FairyGreen.copy(alpha = 0.3f)
-            else -> FairyBlue
-        }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "OddBg"
-    )
-    val borderColor by animateColorAsState(
-        targetValue = when {
-            isSelected -> FairyGold
-            isLocked && isCorrectItem && !isSelected -> FairyGreen
-            else -> Color.Transparent
-        }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "OddBorder"
-    )
+    val backgroundColor by animateColorAsState(targetValue = when { isSelected && isCorrectItem -> FairyGreen; isSelected && !isCorrectItem -> Color.Red.copy(alpha = 0.7f); isLocked && isCorrectItem -> FairyGreen.copy(alpha = 0.3f); else -> FairyBlue }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "Bg")
+    val borderColor by animateColorAsState(targetValue = when { isSelected -> FairyGold; isLocked && isCorrectItem && !isSelected -> FairyGreen; else -> Color.Transparent }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "Border")
     val elevation = if (isSelected) ItemSelectedElevation else ItemElevation
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-        Box(
-            modifier = Modifier.size(ItemSize).shadow(elevation, RoundedCornerShape(ItemCornerRadius)).background(backgroundColor, RoundedCornerShape(ItemCornerRadius))
-                .then(if (borderColor != Color.Transparent) Modifier.border(if (isSelected) SelectedBorderWidth else CorrectBorderWidth, borderColor, RoundedCornerShape(ItemCornerRadius)) else Modifier)
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = !isLocked) { onClick() },
-            contentAlignment = Alignment.Center
-        ) { Text(text = item.emoji, fontSize = EmojiFontSize, textAlign = TextAlign.Center) }
-
+    // ИСПРАВЛЕНО: Modifier.weight(1f) → Modifier.fillMaxWidth() — weight только для RowScope
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.size(ItemSize).shadow(elevation, RoundedCornerShape(ItemCornerRadius)).background(backgroundColor, RoundedCornerShape(ItemCornerRadius)).then(if (borderColor != Color.Transparent) Modifier.border(if (isSelected) SelectedBorderWidth else CorrectBorderWidth, borderColor, RoundedCornerShape(ItemCornerRadius)) else Modifier).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = !isLocked) { onClick() }, contentAlignment = Alignment.Center) {
+            Text(text = item.emoji, fontSize = EmojiFontSize, textAlign = TextAlign.Center)
+        }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = item.category, style = MaterialTheme.typography.bodySmall.copy(fontSize = CategoryFontSize, fontWeight = if (isCorrectItem && isLocked) FontWeight.Bold else FontWeight.Normal),
-            color = if (isCorrectItem && isLocked) FairyGreen else DarkText.copy(alpha = 0.7f), textAlign = TextAlign.Center
-        )
+        Text(text = item.category, style = MaterialTheme.typography.bodySmall.copy(fontSize = CategoryFontSize, fontWeight = if (isCorrectItem && isLocked) FontWeight.Bold else FontWeight.Normal), color = if (isCorrectItem && isLocked) FairyGreen else DarkText.copy(alpha = 0.7f), textAlign = TextAlign.Center)
     }
 }

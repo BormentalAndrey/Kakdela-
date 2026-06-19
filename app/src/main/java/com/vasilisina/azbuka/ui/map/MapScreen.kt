@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import com.vasilisina.azbuka.R
 import com.vasilisina.azbuka.audio.AudioPlayer
 import com.vasilisina.azbuka.data.GameState
+import com.vasilisina.azbuka.ui.common.AdaptiveBox
 import com.vasilisina.azbuka.ui.theme.DarkText
 import com.vasilisina.azbuka.ui.theme.FairyGold
 import com.vasilisina.azbuka.ui.theme.FairyGreen
@@ -64,18 +65,18 @@ import com.vasilisina.azbuka.ui.theme.FairyPink
 import com.vasilisina.azbuka.ui.theme.FairyPurple
 import com.vasilisina.azbuka.ui.theme.WhiteBackground
 
-private val MapPadding = 16.dp
-private val CityPointSize = 62.dp
-private val CityPointPadding = 6.dp
-private val BackButtonCornerRadius = 12.dp
-private val LevelNumberFontSize = 24.sp
-private val CityNameFontSize = 15.sp
-private val StarsFontSize = 14.sp
+private val MapPadding = 12.dp
+private val CityPointSize = 54.dp
+private val CityPointPadding = 4.dp
+private val BackButtonCornerRadius = 10.dp
+private val LevelNumberFontSize = 20.sp
+private val CityNameFontSize = 13.sp
+private val StarsFontSize = 12.sp
 private const val CITY_ANIMATION_DURATION_MS = 400
-private const val CITY_STAGGER_DELAY_MS = 120L
-private val CityPointElevation = 8.dp
-private val BackButtonElevation = 4.dp
-private val CompletedBorderWidth = 3.dp
+private const val CITY_STAGGER_DELAY_MS = 100L
+private val CityPointElevation = 6.dp
+private val BackButtonElevation = 3.dp
+private val CompletedBorderWidth = 2.dp
 private val CompletedBorderColor = FairyGreen
 
 private data class City(val name: String, val level: Int)
@@ -88,26 +89,22 @@ fun MapScreen(onLevelSelected: (Int) -> Unit, onBack: () -> Unit) {
         try { AudioPlayer.playMusic(context = context, resId = R.raw.music_map, loop = true) } catch (_: Exception) { }
     }
 
-    // 6 городов = 6 уровней
     val cities = remember {
         listOf(
-            City("Москва", 1),       // Алфавит
-            City("Тула", 2),          // Счёт
-            City("Вологда", 3),       // Печать
-            City("Казань", 4),        // Логика
-            City("Ярославль", 5),     // Загадки
-            City("Владивосток", 6)    // Финал
+            City("Москва", 1), City("Тула", 2), City("Вологда", 3),
+            City("Казань", 4), City("Ярославль", 5), City("Владивосток", 6)
         )
     }
-    // Разбиваем на 3 строки по 2 города
     val cityRows = remember(cities) { listOf(cities.subList(0, 2), cities.subList(2, 4), cities.subList(4, 6)) }
 
-    Box(modifier = Modifier.fillMaxSize().background(WhiteBackground).statusBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing).navigationBarsPadding()) {
-        MapBackground()
-        Column(modifier = Modifier.fillMaxSize().padding(MapPadding), verticalArrangement = Arrangement.SpaceEvenly) {
-            cityRows.forEachIndexed { rowIndex, row -> CityRow(cities = row, rowIndex = rowIndex, onLevelSelected = onLevelSelected) }
+    AdaptiveBox {
+        Box(modifier = Modifier.fillMaxSize().background(WhiteBackground).statusBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing).navigationBarsPadding()) {
+            MapBackground()
+            Column(modifier = Modifier.fillMaxSize().padding(MapPadding), verticalArrangement = Arrangement.SpaceEvenly) {
+                cityRows.forEachIndexed { rowIndex, row -> CityRow(cities = row, rowIndex = rowIndex, onLevelSelected = onLevelSelected) }
+            }
+            BackButton(onClick = { AudioPlayer.playSFX("click"); onBack() }, modifier = Modifier.align(Alignment.TopStart).padding(MapPadding))
         }
-        BackButton(onClick = { AudioPlayer.playSFX("click"); onBack() }, modifier = Modifier.align(Alignment.TopStart).padding(MapPadding))
     }
 }
 
@@ -115,7 +112,7 @@ fun MapScreen(onLevelSelected: (Int) -> Unit, onBack: () -> Unit) {
 private fun MapBackground() {
     Box(modifier = Modifier.fillMaxSize()) {
         Image(painter = painterResource(id = R.drawable.map_russia), contentDescription = "Карта России", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, WhiteBackground.copy(alpha = 0.15f), WhiteBackground.copy(alpha = 0.3f)))))
+        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, WhiteBackground.copy(alpha = 0.1f), WhiteBackground.copy(alpha = 0.25f)))))
     }
 }
 
@@ -142,23 +139,23 @@ private fun CityPoint(cityName: String, level: Int, onLevelSelected: (Int) -> Un
     val pointColor by animateColorAsState(targetValue = if (isUnlocked) FairyGold else Color.Gray.copy(alpha = 0.45f), animationSpec = tween(300), label = "Point")
     val borderColor by animateColorAsState(targetValue = if (isCompleted) CompletedBorderColor else Color.Transparent, animationSpec = tween(300), label = "Border")
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = isUnlocked) { AudioPlayer.playSFX("click"); onLevelSelected(level) }.padding(CityPointPadding)) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = isUnlocked) { AudioPlayer.playSFX("click"); onLevelSelected(level) }.padding(CityPointPadding)) {
         Box(
             modifier = Modifier.size(CityPointSize).shadow(if (isUnlocked) CityPointElevation else 0.dp, CircleShape).background(pointColor, CircleShape).then(if (isCompleted) Modifier.border(CompletedBorderWidth, borderColor, CircleShape) else Modifier),
             contentAlignment = Alignment.Center
         ) {
             if (!isUnlocked) {
-                Image(painter = painterResource(id = R.drawable.icon_lock), contentDescription = "Закрыто", modifier = Modifier.size(28.dp), contentScale = ContentScale.Fit)
+                Image(painter = painterResource(id = R.drawable.icon_lock), contentDescription = "Закрыто", modifier = Modifier.size(24.dp), contentScale = ContentScale.Fit)
             } else {
                 Text(text = level.toString(), style = MaterialTheme.typography.headlineMedium.copy(fontSize = LevelNumberFontSize, fontWeight = FontWeight.Bold), color = DarkText, textAlign = TextAlign.Center)
             }
         }
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(1.dp))
         Text(text = cityName, style = MaterialTheme.typography.bodyLarge.copy(fontSize = CityNameFontSize, fontWeight = if (isCompleted) FontWeight.Bold else FontWeight.Normal), color = if (isUnlocked) DarkText else Color.Gray, textAlign = TextAlign.Center)
         if (isUnlocked && isCompleted) {
             Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-                repeat(stars) { Image(painter = painterResource(id = R.drawable.star_filled), contentDescription = "★", modifier = Modifier.size(14.dp), contentScale = ContentScale.Fit) }
-                repeat(GameState.MAX_STARS_PER_LEVEL - stars) { Image(painter = painterResource(id = R.drawable.star_empty), contentDescription = "☆", modifier = Modifier.size(14.dp), contentScale = ContentScale.Fit) }
+                repeat(stars) { Image(painter = painterResource(id = R.drawable.star_filled), contentDescription = "★", modifier = Modifier.size(12.dp), contentScale = ContentScale.Fit) }
+                repeat(GameState.MAX_STARS_PER_LEVEL - stars) { Image(painter = painterResource(id = R.drawable.star_empty), contentDescription = "☆", modifier = Modifier.size(12.dp), contentScale = ContentScale.Fit) }
             }
         }
     }
@@ -173,8 +170,8 @@ private fun BackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         colors = ButtonDefaults.buttonColors(containerColor = FairyPink, contentColor = Color.White),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = BackButtonElevation, pressedElevation = BackButtonElevation * 1.5f, focusedElevation = BackButtonElevation, hoveredElevation = BackButtonElevation, disabledElevation = 0.dp)
     ) {
-        Image(painter = painterResource(id = R.drawable.icon_back_arrow), contentDescription = "Назад", modifier = Modifier.size(24.dp), contentScale = ContentScale.Fit)
-        Spacer(modifier = Modifier.size(4.dp))
+        Image(painter = painterResource(id = R.drawable.icon_back_arrow), contentDescription = "Назад", modifier = Modifier.size(20.dp), contentScale = ContentScale.Fit)
+        Spacer(modifier = Modifier.size(3.dp))
         Text(text = "Назад", style = MaterialTheme.typography.labelLarge, color = Color.White)
     }
 }

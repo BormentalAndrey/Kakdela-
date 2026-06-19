@@ -16,16 +16,14 @@ fun AdaptiveBox(content: @Composable () -> Unit) {
         val designWidth = 1920f
         val designHeight = 1080f
 
-        val scaleX = maxWidth.value / designWidth
-        val scaleY = maxHeight.value / designHeight
-        val scale = minOf(scaleX, scaleY)
+        val finalScale = minOf(maxWidth.value / designWidth, maxHeight.value / designHeight)
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
+                    scaleX = finalScale
+                    scaleY = finalScale
                 },
             contentAlignment = Alignment.Center
         ) {

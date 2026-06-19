@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.vasilisina.azbuka.R
 import com.vasilisina.azbuka.audio.AudioPlayer
 import com.vasilisina.azbuka.data.GameState
+import com.vasilisina.azbuka.ui.common.AdaptiveBox
 import com.vasilisina.azbuka.ui.theme.DarkText
 import com.vasilisina.azbuka.ui.theme.FairyGold
 import com.vasilisina.azbuka.ui.theme.FairyGreen
@@ -63,44 +64,49 @@ import com.vasilisina.azbuka.ui.theme.FairyPink
 import com.vasilisina.azbuka.ui.theme.FairyPurple
 import com.vasilisina.azbuka.ui.theme.WhiteBackground
 
-private val ScreenPadding = 16.dp
-private val TitleVerticalPadding = 16.dp
-private val CardSpacing = 12.dp
-private val LazyColumnVerticalPadding = 8.dp
-private val CardInnerPadding = 16.dp
-private val BackButtonHeight = 60.dp
-private const val BACK_BUTTON_WIDTH_FRACTION = 0.6f
-private val BackButtonTopSpacer = 16.dp
-private val CardCornerRadius = 16.dp
-private val CardElevation = 4.dp
-private val CardPressedElevation = 8.dp
+private val ScreenPadding = 12.dp
+private val TitleVerticalPadding = 12.dp
+private val CardSpacing = 8.dp
+private val LazyColumnVerticalPadding = 6.dp
+private val CardInnerPadding = 12.dp
+private val BackButtonHeight = 50.dp
+private const val BACK_BUTTON_WIDTH_FRACTION = 0.5f
+private val BackButtonTopSpacer = 12.dp
+private val CardCornerRadius = 14.dp
+private val CardElevation = 3.dp
+private val CardPressedElevation = 6.dp
 private const val CARD_ANIMATION_DURATION_MS = 400
-private const val CARD_STAGGER_DELAY_MS = 100L
-private val ProgressBarHeight = 12.dp
-private val TotalStarsFontSize = 18.sp
-private val StarImageSize = 24.dp
-private val LockImageSize = 32.dp
+private const val CARD_STAGGER_DELAY_MS = 80L
+private val ProgressBarHeight = 10.dp
+private val TotalStarsFontSize = 16.sp
+private val StarImageSize = 20.dp
+private val LockImageSize = 28.dp
 
 private data class AlbumLevel(val level: Int, val title: String)
 
 @Composable
 fun ProgressAlbumScreen(onBack: () -> Unit) {
-    val levels = remember { listOf(AlbumLevel(1, "Алфавит"), AlbumLevel(2, "Счёт"), AlbumLevel(3, "Печать"), AlbumLevel(4, "Логика"), AlbumLevel(5, "Финал")) }
+    val levels = remember { listOf(
+        AlbumLevel(1, "Алфавит"), AlbumLevel(2, "Счёт"), AlbumLevel(3, "Печать"),
+        AlbumLevel(4, "Логика"), AlbumLevel(5, "Загадки"), AlbumLevel(6, "Финал")
+    )}
     val totalStars = GameState.getTotalStars()
     val maxStars = GameState.TOTAL_MAX_STARS
     val completionPercent = GameState.getCompletionPercent()
 
-    Column(modifier = Modifier.fillMaxSize().background(WhiteBackground).statusBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing).navigationBarsPadding().padding(ScreenPadding), horizontalAlignment = Alignment.CenterHorizontally) {
-        AlbumTitle()
-        OverallProgress(totalStars = totalStars, maxStars = maxStars, completionPercent = completionPercent)
-        Spacer(modifier = Modifier.height(TitleVerticalPadding))
-        LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(CardSpacing), contentPadding = PaddingValues(vertical = LazyColumnVerticalPadding)) {
-            itemsIndexed(items = levels, key = { _, item -> item.level }) { index, item ->
-                AnimatedLevelCard(level = item, index = index, stars = GameState.getStars(item.level), isUnlocked = GameState.isLevelUnlocked(item.level))
+    AdaptiveBox {
+        Column(modifier = Modifier.fillMaxSize().background(WhiteBackground).statusBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing).navigationBarsPadding().padding(ScreenPadding), horizontalAlignment = Alignment.CenterHorizontally) {
+            AlbumTitle()
+            OverallProgress(totalStars = totalStars, maxStars = maxStars, completionPercent = completionPercent)
+            Spacer(modifier = Modifier.height(TitleVerticalPadding))
+            LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(CardSpacing), contentPadding = PaddingValues(vertical = LazyColumnVerticalPadding)) {
+                itemsIndexed(items = levels, key = { _, item -> item.level }) { index, item ->
+                    AnimatedLevelCard(level = item, index = index, stars = GameState.getStars(item.level), isUnlocked = GameState.isLevelUnlocked(item.level))
+                }
             }
+            Spacer(modifier = Modifier.height(BackButtonTopSpacer))
+            BackButton(onClick = { AudioPlayer.playSFX("click"); onBack() })
         }
-        Spacer(modifier = Modifier.height(BackButtonTopSpacer))
-        BackButton(onClick = { AudioPlayer.playSFX("click"); onBack() })
     }
 }
 
@@ -117,16 +123,11 @@ private fun OverallProgress(totalStars: Int, maxStars: Int, completionPercent: I
     LaunchedEffect(Unit) { showProgress = true }
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text(text = "Собрано $totalStars из $maxStars звёзд", style = MaterialTheme.typography.bodyLarge.copy(fontSize = TotalStarsFontSize, fontWeight = FontWeight.Medium), color = DarkText)
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         AnimatedVisibility(visible = showProgress) {
-            LinearProgressIndicator(
-                progress = completionPercent / 100f,
-                modifier = Modifier.fillMaxWidth(0.8f).height(ProgressBarHeight),
-                color = FairyGold,
-                trackColor = Color.LightGray.copy(alpha = 0.3f),
-            )
+            LinearProgressIndicator(progress = completionPercent / 100f, modifier = Modifier.fillMaxWidth(0.8f).height(ProgressBarHeight), color = FairyGold, trackColor = Color.LightGray.copy(alpha = 0.3f))
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Text(text = "$completionPercent%", style = MaterialTheme.typography.bodySmall, color = DarkText.copy(alpha = 0.6f))
     }
 }
@@ -147,11 +148,8 @@ private fun LevelProgressCard(name: String, level: Int, stars: Int, isUnlocked: 
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(CardCornerRadius), colors = CardDefaults.cardColors(containerColor = cardColor), elevation = CardDefaults.cardElevation(defaultElevation = CardElevation)) {
         Row(modifier = Modifier.fillMaxWidth().padding(CardInnerPadding), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Text(text = "$name (Ур. $level)", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = if (safeStars > 0) FontWeight.Bold else FontWeight.Normal), color = if (isUnlocked) DarkText else Color.Gray, modifier = Modifier.weight(1f))
-            if (isUnlocked) {
-                StarRow(filled = safeStars, total = GameState.MAX_STARS_PER_LEVEL)
-            } else {
-                Image(painter = painterResource(id = R.drawable.icon_lock), contentDescription = "Закрыто", modifier = Modifier.size(LockImageSize), contentScale = ContentScale.Fit)
-            }
+            if (isUnlocked) StarRow(filled = safeStars, total = GameState.MAX_STARS_PER_LEVEL)
+            else Image(painter = painterResource(id = R.drawable.icon_lock), contentDescription = "Закрыто", modifier = Modifier.size(LockImageSize), contentScale = ContentScale.Fit)
         }
     }
 }
@@ -159,20 +157,16 @@ private fun LevelProgressCard(name: String, level: Int, stars: Int, isUnlocked: 
 @Composable
 private fun StarRow(filled: Int, total: Int) {
     Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-        repeat(filled) {
-            Image(painter = painterResource(id = R.drawable.star_filled), contentDescription = "★", modifier = Modifier.size(StarImageSize), contentScale = ContentScale.Fit)
-        }
-        repeat(total - filled) {
-            Image(painter = painterResource(id = R.drawable.star_empty), contentDescription = "☆", modifier = Modifier.size(StarImageSize), contentScale = ContentScale.Fit)
-        }
+        repeat(filled) { Image(painter = painterResource(id = R.drawable.star_filled), contentDescription = "★", modifier = Modifier.size(StarImageSize), contentScale = ContentScale.Fit) }
+        repeat(total - filled) { Image(painter = painterResource(id = R.drawable.star_empty), contentDescription = "☆", modifier = Modifier.size(StarImageSize), contentScale = ContentScale.Fit) }
     }
 }
 
 @Composable
 private fun BackButton(onClick: () -> Unit) {
     Button(onClick = onClick, modifier = Modifier.fillMaxWidth(BACK_BUTTON_WIDTH_FRACTION).height(BackButtonHeight), shape = RoundedCornerShape(CardCornerRadius), colors = ButtonDefaults.buttonColors(containerColor = FairyPurple, contentColor = Color.White), elevation = ButtonDefaults.buttonElevation(defaultElevation = CardElevation, pressedElevation = CardPressedElevation, focusedElevation = CardElevation, hoveredElevation = CardElevation, disabledElevation = 0.dp)) {
-        Image(painter = painterResource(id = R.drawable.icon_back_arrow), contentDescription = "Назад", modifier = Modifier.size(24.dp), contentScale = ContentScale.Fit)
-        Spacer(modifier = Modifier.size(4.dp))
+        Image(painter = painterResource(id = R.drawable.icon_back_arrow), contentDescription = "Назад", modifier = Modifier.size(20.dp), contentScale = ContentScale.Fit)
+        Spacer(modifier = Modifier.size(3.dp))
         Text(text = "Назад", style = MaterialTheme.typography.labelLarge, color = Color.White)
     }
 }

@@ -65,14 +65,14 @@ import com.vasilisina.azbuka.ui.theme.FairyPurple
 import com.vasilisina.azbuka.ui.theme.WhiteBackground
 
 private val MapPadding = 16.dp
-private val CityPointSize = 70.dp
-private val CityPointPadding = 8.dp
+private val CityPointSize = 62.dp
+private val CityPointPadding = 6.dp
 private val BackButtonCornerRadius = 12.dp
-private val LevelNumberFontSize = 28.sp
-private val CityNameFontSize = 18.sp
-private val StarsFontSize = 16.sp
+private val LevelNumberFontSize = 24.sp
+private val CityNameFontSize = 15.sp
+private val StarsFontSize = 14.sp
 private const val CITY_ANIMATION_DURATION_MS = 400
-private const val CITY_STAGGER_DELAY_MS = 150L
+private const val CITY_STAGGER_DELAY_MS = 120L
 private val CityPointElevation = 8.dp
 private val BackButtonElevation = 4.dp
 private val CompletedBorderWidth = 3.dp
@@ -88,8 +88,19 @@ fun MapScreen(onLevelSelected: (Int) -> Unit, onBack: () -> Unit) {
         try { AudioPlayer.playMusic(context = context, resId = R.raw.music_map, loop = true) } catch (_: Exception) { }
     }
 
-    val cities = remember { listOf(City("Москва", 1), City("Тула", 2), City("Вологда", 3), City("Казань", 4), City("Владивосток", 5)) }
-    val cityRows = remember(cities) { listOf(cities.subList(0, 2), cities.subList(2, 4), cities.subList(4, 5)) }
+    // 6 городов = 6 уровней
+    val cities = remember {
+        listOf(
+            City("Москва", 1),       // Алфавит
+            City("Тула", 2),          // Счёт
+            City("Вологда", 3),       // Печать
+            City("Казань", 4),        // Логика
+            City("Ярославль", 5),     // Загадки
+            City("Владивосток", 6)    // Финал
+        )
+    }
+    // Разбиваем на 3 строки по 2 города
+    val cityRows = remember(cities) { listOf(cities.subList(0, 2), cities.subList(2, 4), cities.subList(4, 6)) }
 
     Box(modifier = Modifier.fillMaxSize().background(WhiteBackground).statusBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing).navigationBarsPadding()) {
         MapBackground()
@@ -131,29 +142,23 @@ private fun CityPoint(cityName: String, level: Int, onLevelSelected: (Int) -> Un
     val pointColor by animateColorAsState(targetValue = if (isUnlocked) FairyGold else Color.Gray.copy(alpha = 0.45f), animationSpec = tween(300), label = "Point")
     val borderColor by animateColorAsState(targetValue = if (isCompleted) CompletedBorderColor else Color.Transparent, animationSpec = tween(300), label = "Border")
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = isUnlocked) { AudioPlayer.playSFX("click"); onLevelSelected(level) }.padding(CityPointPadding)) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = isUnlocked) { AudioPlayer.playSFX("click"); onLevelSelected(level) }.padding(CityPointPadding)) {
         Box(
             modifier = Modifier.size(CityPointSize).shadow(if (isUnlocked) CityPointElevation else 0.dp, CircleShape).background(pointColor, CircleShape).then(if (isCompleted) Modifier.border(CompletedBorderWidth, borderColor, CircleShape) else Modifier),
             contentAlignment = Alignment.Center
         ) {
             if (!isUnlocked) {
-                // Замок — картинка
-                Image(
-                    painter = painterResource(id = R.drawable.icon_lock),
-                    contentDescription = "Закрыто",
-                    modifier = Modifier.size(32.dp),
-                    contentScale = ContentScale.Fit
-                )
+                Image(painter = painterResource(id = R.drawable.icon_lock), contentDescription = "Закрыто", modifier = Modifier.size(28.dp), contentScale = ContentScale.Fit)
             } else {
                 Text(text = level.toString(), style = MaterialTheme.typography.headlineMedium.copy(fontSize = LevelNumberFontSize, fontWeight = FontWeight.Bold), color = DarkText, textAlign = TextAlign.Center)
             }
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Text(text = cityName, style = MaterialTheme.typography.bodyLarge.copy(fontSize = CityNameFontSize, fontWeight = if (isCompleted) FontWeight.Bold else FontWeight.Normal), color = if (isUnlocked) DarkText else Color.Gray, textAlign = TextAlign.Center)
         if (isUnlocked && isCompleted) {
-            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                repeat(stars) { Image(painter = painterResource(id = R.drawable.star_filled), contentDescription = "★", modifier = Modifier.size(16.dp), contentScale = ContentScale.Fit) }
-                repeat(GameState.MAX_STARS_PER_LEVEL - stars) { Image(painter = painterResource(id = R.drawable.star_empty), contentDescription = "☆", modifier = Modifier.size(16.dp), contentScale = ContentScale.Fit) }
+            Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+                repeat(stars) { Image(painter = painterResource(id = R.drawable.star_filled), contentDescription = "★", modifier = Modifier.size(14.dp), contentScale = ContentScale.Fit) }
+                repeat(GameState.MAX_STARS_PER_LEVEL - stars) { Image(painter = painterResource(id = R.drawable.star_empty), contentDescription = "☆", modifier = Modifier.size(14.dp), contentScale = ContentScale.Fit) }
             }
         }
     }

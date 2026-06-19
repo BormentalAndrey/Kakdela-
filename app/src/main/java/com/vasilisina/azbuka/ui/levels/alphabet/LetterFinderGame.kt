@@ -22,7 +22,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,46 +52,30 @@ import com.vasilisina.azbuka.ui.theme.FairyGreen
 import com.vasilisina.azbuka.ui.theme.FairyPurple
 import kotlinx.coroutines.delay
 
-// -------------------------------------------------------------------------
-// Константы
-// -------------------------------------------------------------------------
-
-private val CellSize = 60.dp
+private val CellSize = 56.dp
 private val CellCornerRadius = 12.dp
-private val CellHorizontalSpacing = 12.dp
-private val CellVerticalSpacing = 6.dp
-private val GamePadding = 16.dp
-private val GridTopSpacer = 16.dp
+private val CellHorizontalSpacing = 8.dp
+private val CellVerticalSpacing = 4.dp
+private val GamePadding = 10.dp
+private val GridTopSpacer = 12.dp
 private const val TARGET_LETTER_COUNT = 5
 private const val DISTRACTOR_LETTER_COUNT = 5
 private const val CELLS_PER_ROW = 5
-private const val CELL_STAGGER_DELAY_MS = 50L
-private const val CELL_APPEAR_DURATION_MS = 300
+private const val CELL_STAGGER_DELAY_MS = 40L
+private const val CELL_APPEAR_DURATION_MS = 250
 private const val COLOR_ANIMATION_DURATION_MS = 300
-private val CellElevation = 4.dp
+private val CellElevation = 3.dp
 private val FoundBorderWidth = 2.dp
-private val CellFontSize = 28.sp
-private val CounterFontSize = 18.sp
-
-// -------------------------------------------------------------------------
-// Игра «Найди буквы»
-// -------------------------------------------------------------------------
+private val CellFontSize = 26.sp
+private val CounterFontSize = 16.sp
 
 @Composable
-fun LetterFinderGame(
-    targetLetter: String,
-    onComplete: (Boolean) -> Unit
-) {
+fun LetterFinderGame(targetLetter: String, onComplete: (Boolean) -> Unit) {
     val allLetters = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+    val scrollState = rememberScrollState()
 
-    // ИСПРАВЛЕНО: allLetters.toList() вместо allLetters (String не имеет .shuffled() с лямбдой)
     val symbols = remember(targetLetter) {
-        val others = allLetters.toList()
-            .filter { it.toString() != targetLetter }
-            .shuffled()
-            .take(DISTRACTOR_LETTER_COUNT)
-            .map { it.toString() }
-
+        val others = allLetters.toList().filter { it.toString() != targetLetter }.shuffled().take(DISTRACTOR_LETTER_COUNT).map { it.toString() }
         val result = mutableListOf<String>()
         repeat(TARGET_LETTER_COUNT) { result.add(targetLetter) }
         result.addAll(others)
@@ -101,239 +87,69 @@ fun LetterFinderGame(
     var isCompleted by remember { mutableStateOf(false) }
     val remainingCount = TARGET_LETTER_COUNT - foundCount
 
-    val rows = remember(symbols) {
-        symbols.chunked(CELLS_PER_ROW)
-    }
+    Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState).padding(GamePadding), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = "Найди все буквы «$targetLetter»!", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Spacer(modifier = Modifier.height(6.dp))
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(GamePadding),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Найди все буквы «$targetLetter»!",
-            style = MaterialTheme.typography.headlineMedium,
-            color = DarkText,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        FoundCounter(
-            found = foundCount,
-            total = TARGET_LETTER_COUNT,
-            remaining = remainingCount
-        )
-
+        FoundCounter(found = foundCount, total = TARGET_LETTER_COUNT, remaining = remainingCount)
         Spacer(modifier = Modifier.height(GridTopSpacer))
 
-        rows.forEachIndexed { rowIndex, row ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(CellHorizontalSpacing),
-                modifier = Modifier.padding(vertical = CellVerticalSpacing)
-            ) {
-                row.forEachIndexed { colIndex, letter ->
-                    val cellIndex = rowIndex * CELLS_PER_ROW + colIndex
-                    val appearDelay = (rowIndex * CELLS_PER_ROW + colIndex) * CELL_STAGGER_DELAY_MS
+        // Сетка 5×2
+        val rows = symbols.chunked(CELLS_PER_ROW)
+        rows.forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(CellHorizontalSpacing), modifier = Modifier.padding(vertical = CellVerticalSpacing)) {
+                row.forEach { letter ->
+                    val cellIndex = symbols.indexOf(letter)
+                    val appearDelay = cellIndex * CELL_STAGGER_DELAY_MS
 
-                    AnimatedLetterCell(
-                        letter = letter,
-                        targetLetter = targetLetter,
-                        isClicked = clickedStates.containsKey(cellIndex),
-                        isCorrect = clickedStates[cellIndex] ?: false,
-                        appearDelay = appearDelay,
-                        onTap = { correct ->
-                            if (!isCompleted && !clickedStates.containsKey(cellIndex)) {
-                                clickedStates[cellIndex] = correct
-                                if (correct) {
-                                    foundCount++
-                                    AudioPlayer.playSFX("correct")
-                                    if (foundCount >= TARGET_LETTER_COUNT) {
-                                        isCompleted = true
-                                        onComplete(true)
-                                    }
-                                } else {
-                                    AudioPlayer.playSFX("wrong")
-                                }
-                            }
+                    AnimatedLetterCell(letter = letter, targetLetter = targetLetter, isClicked = clickedStates.containsKey(cellIndex), isCorrect = clickedStates[cellIndex] ?: false, appearDelay = appearDelay, onTap = { correct ->
+                        if (!isCompleted && !clickedStates.containsKey(cellIndex)) {
+                            clickedStates[cellIndex] = correct
+                            if (correct) { foundCount++; AudioPlayer.playSFX("correct"); if (foundCount >= TARGET_LETTER_COUNT) { isCompleted = true; onComplete(true) } }
+                            else { AudioPlayer.playSFX("wrong") }
                         }
-                    )
+                    })
                 }
             }
         }
 
         if (!isCompleted) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "Нажимай на буквы, чтобы найти все «$targetLetter»",
-                style = MaterialTheme.typography.bodySmall,
-                color = DarkText.copy(alpha = 0.5f),
-                textAlign = TextAlign.Center
-            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "Нажимай на буквы, чтобы найти все «$targetLetter»", style = MaterialTheme.typography.bodySmall, color = DarkText.copy(alpha = 0.5f), textAlign = TextAlign.Center)
         }
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
-
-// -------------------------------------------------------------------------
-// Счётчик найденных букв
-// -------------------------------------------------------------------------
 
 @Composable
 private fun FoundCounter(found: Int, total: Int, remaining: Int) {
-    val counterColor by animateColorAsState(
-        targetValue = when {
-            found == total -> FairyGreen
-            found > 0 -> FairyGold
-            else -> DarkText
-        },
-        animationSpec = tween(COLOR_ANIMATION_DURATION_MS),
-        label = "CounterColor"
-    )
-
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Найдено: ",
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = CounterFontSize),
-            color = DarkText
-        )
-        Text(
-            text = "$found из $total",
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = CounterFontSize, fontWeight = FontWeight.Bold),
-            color = counterColor
-        )
-        if (found < total) {
-            Text(
-                text = "  (осталось $remaining)",
-                style = MaterialTheme.typography.bodySmall,
-                color = DarkText.copy(alpha = 0.6f)
-            )
-        } else {
-            Text(
-                text = "  ✓",
-                style = MaterialTheme.typography.bodyLarge,
-                color = FairyGreen
-            )
-        }
+    val counterColor by animateColorAsState(targetValue = when { found == total -> FairyGreen; found > 0 -> FairyGold; else -> DarkText }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "Counter")
+    Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+        Text(text = "Найдено: ", style = MaterialTheme.typography.bodyLarge.copy(fontSize = CounterFontSize), color = DarkText)
+        Text(text = "$found из $total", style = MaterialTheme.typography.bodyLarge.copy(fontSize = CounterFontSize, fontWeight = FontWeight.Bold), color = counterColor)
+        if (found < total) Text(text = "  (осталось $remaining)", style = MaterialTheme.typography.bodySmall, color = DarkText.copy(alpha = 0.6f))
+        else Text(text = "  ✓", style = MaterialTheme.typography.bodyLarge, color = FairyGreen)
     }
 }
 
-// -------------------------------------------------------------------------
-// Анимированная ячейка
-// -------------------------------------------------------------------------
-
 @Composable
-private fun AnimatedLetterCell(
-    letter: String,
-    targetLetter: String,
-    isClicked: Boolean,
-    isCorrect: Boolean,
-    appearDelay: Long,
-    onTap: (Boolean) -> Unit
-) {
+private fun AnimatedLetterCell(letter: String, targetLetter: String, isClicked: Boolean, isCorrect: Boolean, appearDelay: Long, onTap: (Boolean) -> Unit) {
     var isVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        delay(appearDelay)
-        isVisible = true
-    }
-
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = scaleIn(
-            initialScale = 0.3f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium
-            )
-        ) + fadeIn(animationSpec = tween(CELL_APPEAR_DURATION_MS))
-    ) {
-        LetterCell(
-            letter = letter,
-            targetLetter = targetLetter,
-            alreadyClicked = isClicked,
-            isCorrect = isCorrect,
-            onTap = onTap
-        )
+    LaunchedEffect(Unit) { delay(appearDelay); isVisible = true }
+    AnimatedVisibility(visible = isVisible, enter = scaleIn(initialScale = 0.3f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(animationSpec = tween(CELL_APPEAR_DURATION_MS))) {
+        LetterCell(letter = letter, targetLetter = targetLetter, alreadyClicked = isClicked, isCorrect = isCorrect, onTap = onTap)
     }
 }
 
-// -------------------------------------------------------------------------
-// Ячейка с буквой
-// -------------------------------------------------------------------------
-
 @Composable
-fun LetterCell(
-    letter: String,
-    targetLetter: String,
-    alreadyClicked: Boolean,
-    isCorrect: Boolean,
-    onTap: (Boolean) -> Unit
-) {
+fun LetterCell(letter: String, targetLetter: String, alreadyClicked: Boolean, isCorrect: Boolean, onTap: (Boolean) -> Unit) {
     val isTarget = letter == targetLetter
+    val backgroundColor by animateColorAsState(targetValue = when { !alreadyClicked -> FairyBlue; isCorrect -> FairyGreen; else -> Color.Gray.copy(alpha = 0.6f) }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "CellBg")
+    val borderColor by animateColorAsState(targetValue = if (alreadyClicked && isCorrect) FairyPurple else Color.Transparent, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "CellBorder")
+    val cellText = when { !alreadyClicked -> letter; isCorrect -> "✓"; else -> "✕" }
+    val textColor = when { !alreadyClicked -> DarkText; isCorrect -> Color.White; else -> Color.White.copy(alpha = 0.8f) }
 
-    val backgroundColor by animateColorAsState(
-        targetValue = when {
-            !alreadyClicked -> FairyBlue
-            isCorrect -> FairyGreen
-            else -> Color.Gray.copy(alpha = 0.6f)
-        },
-        animationSpec = tween(COLOR_ANIMATION_DURATION_MS),
-        label = "CellBackground"
-    )
-
-    val borderColor by animateColorAsState(
-        targetValue = if (alreadyClicked && isCorrect) FairyPurple else Color.Transparent,
-        animationSpec = tween(COLOR_ANIMATION_DURATION_MS),
-        label = "CellBorder"
-    )
-
-    val cellText = when {
-        !alreadyClicked -> letter
-        isCorrect -> "✓"
-        else -> "✕"
-    }
-
-    val textColor = when {
-        !alreadyClicked -> DarkText
-        isCorrect -> Color.White
-        else -> Color.White.copy(alpha = 0.8f)
-    }
-
-    Box(
-        modifier = Modifier
-            .size(CellSize)
-            .shadow(
-                elevation = if (!alreadyClicked) CellElevation else 0.dp,
-                shape = RoundedCornerShape(CellCornerRadius)
-            )
-            .clip(RoundedCornerShape(CellCornerRadius))
-            .background(backgroundColor)
-            .then(
-                if (alreadyClicked && isCorrect) {
-                    Modifier.border(FoundBorderWidth, borderColor, RoundedCornerShape(CellCornerRadius))
-                } else {
-                    Modifier
-                }
-            )
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                enabled = !alreadyClicked
-            ) { onTap(isTarget) },
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = cellText,
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontSize = CellFontSize,
-                fontWeight = FontWeight.Bold
-            ),
-            color = textColor,
-            textAlign = TextAlign.Center
-        )
+    Box(modifier = Modifier.size(CellSize).shadow(if (!alreadyClicked) CellElevation else 0.dp, RoundedCornerShape(CellCornerRadius)).clip(RoundedCornerShape(CellCornerRadius)).background(backgroundColor).then(if (alreadyClicked && isCorrect) Modifier.border(FoundBorderWidth, borderColor, RoundedCornerShape(CellCornerRadius)) else Modifier).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = !alreadyClicked) { onTap(isTarget) }, contentAlignment = Alignment.Center) {
+        Text(text = cellText, style = MaterialTheme.typography.headlineMedium.copy(fontSize = CellFontSize, fontWeight = FontWeight.Bold), color = textColor, textAlign = TextAlign.Center)
     }
 }

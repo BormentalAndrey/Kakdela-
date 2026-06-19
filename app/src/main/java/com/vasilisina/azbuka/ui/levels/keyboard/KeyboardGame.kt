@@ -53,20 +53,20 @@ import kotlinx.coroutines.launch
 
 private val KeyboardLetters = listOf("А", "О", "У", "М", "П", "Р", "С", "Т", "К", "В", "Л", "Н")
 private const val GRID_COLUMNS = 4
-private val KeySize = 64.dp
+private val KeySize = 66.dp
 private val KeyCornerRadius = 14.dp
 private val KeyBorderWidth = 2.dp
 private val GridSpacing = 8.dp
 private val GamePadding = 10.dp
-private val KeyboardTopSpacer = 16.dp
+private val KeyboardTopSpacer = 14.dp
 private const val COLOR_ANIMATION_DURATION_MS = 250
 private const val SUCCESS_DELAY_MS = 800L
 private const val WRONG_FLASH_DURATION_MS = 500L
 private const val KEY_STAGGER_DELAY_MS = 30L
 private const val KEY_APPEAR_DURATION_MS = 300
-private val KeyElevation = 3.dp
+private val KeyElevation = 4.dp
 private val KeyPressedElevation = 6.dp
-private val KeyFontSize = 26.sp
+private val KeyFontSize = 28.sp
 private val HintFontSize = 14.sp
 private val TargetLetterSize = 48.sp
 

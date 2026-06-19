@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vasilisina.azbuka.audio.AudioPlayer
+import com.vasilisina.azbuka.ui.common.AdaptiveBox
 import com.vasilisina.azbuka.ui.theme.DarkText
 import com.vasilisina.azbuka.ui.theme.FairyPink
 import com.vasilisina.azbuka.ui.theme.FairyPurple
@@ -199,57 +200,59 @@ private val fairyTaleText = """
 fun FairyTaleScreen(onBack: () -> Unit) {
     val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(WhiteBackground)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Волшебный клубочек",
-            style = MaterialTheme.typography.headlineLarge.copy(fontSize = 28.sp, fontWeight = FontWeight.Bold),
-            color = FairyPurple,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = "Путешествие по матушке-России",
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-            color = DarkText,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
+    AdaptiveBox {
         Column(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(scrollState)
-                .fillMaxWidth()
-                .background(FairyPink.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                .padding(16.dp)
+                .fillMaxSize()
+                .background(WhiteBackground)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = fairyTaleText,
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 28.sp),
-                color = DarkText,
-                textAlign = TextAlign.Start
+                text = "Волшебный клубочек",
+                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 24.sp, fontWeight = FontWeight.Bold),
+                color = FairyPurple,
+                textAlign = TextAlign.Center
             )
-        }
+            Text(
+                text = "Путешествие по матушке-России",
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
+                color = DarkText,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(scrollState)
+                    .fillMaxWidth()
+                    .background(FairyPink.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = fairyTaleText,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp),
+                    color = DarkText,
+                    textAlign = TextAlign.Start
+                )
+            }
 
-        Button(
-            onClick = {
-                AudioPlayer.playSFX("click")
-                onBack()
-            },
-            modifier = Modifier.fillMaxWidth(0.6f).height(50.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = FairyPurple, contentColor = Color.White)
-        ) {
-            Text("Назад", style = MaterialTheme.typography.labelLarge)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = {
+                    AudioPlayer.playSFX("click")
+                    onBack()
+                },
+                modifier = Modifier.fillMaxWidth(0.5f).height(44.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = FairyPurple, contentColor = Color.White)
+            ) {
+                Text("Назад", style = MaterialTheme.typography.labelLarge)
+            }
         }
     }
 }

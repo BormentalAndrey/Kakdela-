@@ -64,10 +64,6 @@ import com.vasilisina.azbuka.ui.theme.FairyPink
 import com.vasilisina.azbuka.ui.theme.FairyPurple
 import com.vasilisina.azbuka.ui.theme.WhiteBackground
 
-// -------------------------------------------------------------------------
-// Константы
-// -------------------------------------------------------------------------
-
 private val MapPadding = 16.dp
 private val CityPointSize = 70.dp
 private val CityPointPadding = 8.dp
@@ -82,25 +78,14 @@ private val BackButtonElevation = 4.dp
 private val CompletedBorderWidth = 3.dp
 private val CompletedBorderColor = FairyGreen
 
-// -------------------------------------------------------------------------
-// Модель
-// -------------------------------------------------------------------------
-
 private data class City(val name: String, val level: Int)
-
-// -------------------------------------------------------------------------
-// Главный экран
-// -------------------------------------------------------------------------
 
 @Composable
 fun MapScreen(onLevelSelected: (Int) -> Unit, onBack: () -> Unit) {
     val context = LocalContext.current
 
-    // ИСПРАВЛЕНО: try-catch на случай отсутствия файла
     LaunchedEffect(Unit) {
-        try {
-            AudioPlayer.playMusic(context = context, resId = R.raw.music_map, loop = true)
-        } catch (_: Exception) { }
+        try { AudioPlayer.playMusic(context = context, resId = R.raw.music_map, loop = true) } catch (_: Exception) { }
     }
 
     val cities = remember { listOf(City("Москва", 1), City("Тула", 2), City("Вологда", 3), City("Казань", 4), City("Владивосток", 5)) }
@@ -115,10 +100,6 @@ fun MapScreen(onLevelSelected: (Int) -> Unit, onBack: () -> Unit) {
     }
 }
 
-// -------------------------------------------------------------------------
-// Фон
-// -------------------------------------------------------------------------
-
 @Composable
 private fun MapBackground() {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -127,10 +108,6 @@ private fun MapBackground() {
     }
 }
 
-// -------------------------------------------------------------------------
-// Строка городов
-// -------------------------------------------------------------------------
-
 @Composable
 private fun CityRow(cities: List<City>, rowIndex: Int, onLevelSelected: (Int) -> Unit) {
     var isVisible by remember { mutableStateOf(false) }
@@ -138,16 +115,12 @@ private fun CityRow(cities: List<City>, rowIndex: Int, onLevelSelected: (Int) ->
 
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (cities.size == 1) Arrangement.Center else Arrangement.SpaceEvenly) {
         cities.forEach { city ->
-            AnimatedVisibility(visible = isVisible, enter = fadeIn(animationSpec = tween(CITY_ANIMATION_DURATION_MS)) + scaleIn(initialScale = 0.3f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))) {
+            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(CITY_ANIMATION_DURATION_MS)) + scaleIn(initialScale = 0.3f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))) {
                 CityPoint(cityName = city.name, level = city.level, onLevelSelected = onLevelSelected)
             }
         }
     }
 }
-
-// -------------------------------------------------------------------------
-// Точка города
-// -------------------------------------------------------------------------
 
 @Composable
 private fun CityPoint(cityName: String, level: Int, onLevelSelected: (Int) -> Unit) {
@@ -159,24 +132,44 @@ private fun CityPoint(cityName: String, level: Int, onLevelSelected: (Int) -> Un
     val borderColor by animateColorAsState(targetValue = if (isCompleted) CompletedBorderColor else Color.Transparent, animationSpec = tween(300), label = "Border")
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = isUnlocked) { AudioPlayer.playSFX("click"); onLevelSelected(level) }.padding(CityPointPadding)) {
-        Box(modifier = Modifier.size(CityPointSize).shadow(if (isUnlocked) CityPointElevation else 0.dp, CircleShape).background(pointColor, CircleShape).then(if (isCompleted) Modifier.border(CompletedBorderWidth, borderColor, CircleShape) else Modifier), contentAlignment = Alignment.Center) {
-            Text(text = if (isUnlocked) level.toString() else "🔒", style = MaterialTheme.typography.headlineMedium.copy(fontSize = LevelNumberFontSize, fontWeight = FontWeight.Bold), color = if (isUnlocked) DarkText else Color.White, textAlign = TextAlign.Center)
+        Box(
+            modifier = Modifier.size(CityPointSize).shadow(if (isUnlocked) CityPointElevation else 0.dp, CircleShape).background(pointColor, CircleShape).then(if (isCompleted) Modifier.border(CompletedBorderWidth, borderColor, CircleShape) else Modifier),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!isUnlocked) {
+                // Замок — картинка
+                Image(
+                    painter = painterResource(id = R.drawable.icon_lock),
+                    contentDescription = "Закрыто",
+                    modifier = Modifier.size(32.dp),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                Text(text = level.toString(), style = MaterialTheme.typography.headlineMedium.copy(fontSize = LevelNumberFontSize, fontWeight = FontWeight.Bold), color = DarkText, textAlign = TextAlign.Center)
+            }
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = cityName, style = MaterialTheme.typography.bodyLarge.copy(fontSize = CityNameFontSize, fontWeight = if (isCompleted) FontWeight.Bold else FontWeight.Normal), color = if (isUnlocked) DarkText else Color.Gray, textAlign = TextAlign.Center)
         if (isUnlocked && isCompleted) {
-            Text(text = buildString { repeat(stars) { append("★") }; repeat(GameState.MAX_STARS_PER_LEVEL - stars) { append("☆") } }, color = FairyGold, style = MaterialTheme.typography.bodyLarge.copy(fontSize = StarsFontSize), textAlign = TextAlign.Center)
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                repeat(stars) { Image(painter = painterResource(id = R.drawable.star_filled), contentDescription = "★", modifier = Modifier.size(16.dp), contentScale = ContentScale.Fit) }
+                repeat(GameState.MAX_STARS_PER_LEVEL - stars) { Image(painter = painterResource(id = R.drawable.star_empty), contentDescription = "☆", modifier = Modifier.size(16.dp), contentScale = ContentScale.Fit) }
+            }
         }
     }
 }
 
-// -------------------------------------------------------------------------
-// Кнопка Назад
-// -------------------------------------------------------------------------
-
 @Composable
 private fun BackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Button(onClick = onClick, modifier = modifier.shadow(BackButtonElevation, RoundedCornerShape(BackButtonCornerRadius)), shape = RoundedCornerShape(BackButtonCornerRadius), colors = ButtonDefaults.buttonColors(containerColor = FairyPink, contentColor = Color.White), elevation = ButtonDefaults.buttonElevation(defaultElevation = BackButtonElevation, pressedElevation = BackButtonElevation * 1.5f, focusedElevation = BackButtonElevation, hoveredElevation = BackButtonElevation, disabledElevation = 0.dp)) {
-        Text(text = "← Назад", style = MaterialTheme.typography.labelLarge, color = Color.White)
+    Button(
+        onClick = onClick,
+        modifier = modifier.shadow(BackButtonElevation, RoundedCornerShape(BackButtonCornerRadius)),
+        shape = RoundedCornerShape(BackButtonCornerRadius),
+        colors = ButtonDefaults.buttonColors(containerColor = FairyPink, contentColor = Color.White),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = BackButtonElevation, pressedElevation = BackButtonElevation * 1.5f, focusedElevation = BackButtonElevation, hoveredElevation = BackButtonElevation, disabledElevation = 0.dp)
+    ) {
+        Image(painter = painterResource(id = R.drawable.icon_back_arrow), contentDescription = "Назад", modifier = Modifier.size(24.dp), contentScale = ContentScale.Fit)
+        Spacer(modifier = Modifier.size(4.dp))
+        Text(text = "Назад", style = MaterialTheme.typography.labelLarge, color = Color.White)
     }
 }

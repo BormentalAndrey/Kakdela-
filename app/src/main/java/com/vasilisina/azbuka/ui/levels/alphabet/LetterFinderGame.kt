@@ -48,97 +48,43 @@ import com.vasilisina.azbuka.ui.theme.FairyBlue
 import com.vasilisina.azbuka.ui.theme.FairyGold
 import com.vasilisina.azbuka.ui.theme.FairyGreen
 import com.vasilisina.azbuka.ui.theme.FairyPurple
-import com.vasilisina.azbuka.ui.theme.WhiteBackground
 import kotlinx.coroutines.delay
 
 // -------------------------------------------------------------------------
 // Константы
 // -------------------------------------------------------------------------
 
-/** Размер ячейки с буквой */
 private val CellSize = 60.dp
-
-/** Радиус скругления ячейки */
 private val CellCornerRadius = 12.dp
-
-/** Горизонтальный интервал между ячейками */
 private val CellHorizontalSpacing = 12.dp
-
-/** Вертикальный интервал между рядами */
 private val CellVerticalSpacing = 6.dp
-
-/** Отступ контейнера игры */
 private val GamePadding = 16.dp
-
-/** Отступ перед сеткой */
 private val GridTopSpacer = 16.dp
-
-/** Количество целевых букв на поле */
 private const val TARGET_LETTER_COUNT = 5
-
-/** Количество отвлекающих букв на поле */
 private const val DISTRACTOR_LETTER_COUNT = 5
-
-/** Общее количество ячеек */
-private const val TOTAL_CELLS = TARGET_LETTER_COUNT + DISTRACTOR_LETTER_COUNT
-
-/** Количество ячеек в ряду */
 private const val CELLS_PER_ROW = 5
-
-/** Количество рядов */
-private const val ROW_COUNT = TOTAL_CELLS / CELLS_PER_ROW
-
-/** Задержка между появлением ячеек (stagger, мс) */
 private const val CELL_STAGGER_DELAY_MS = 50L
-
-/** Длительность анимации появления ячейки (мс) */
 private const val CELL_APPEAR_DURATION_MS = 300
-
-/** Длительность анимации смены цвета (мс) */
 private const val COLOR_ANIMATION_DURATION_MS = 300
-
-/** Тень ячейки */
 private val CellElevation = 4.dp
-
-/** Толщина обводки найденной ячейки */
 private val FoundBorderWidth = 2.dp
-
-/** Размер шрифта в ячейке */
 private val CellFontSize = 28.sp
-
-/** Размер шрифта счётчика */
 private val CounterFontSize = 18.sp
 
 // -------------------------------------------------------------------------
 // Игра «Найди буквы»
 // -------------------------------------------------------------------------
 
-/**
- * Мини-игра «Найди буквы».
- *
- * На экране 10 ячеек: 5 с целевой буквой, 5 с отвлекающими.
- * Ребёнок должен найти и нажать все 5 целевых букв.
- *
- * Особенности:
- * - Каскадная анимация появления ячеек
- * - Визуальная обратная связь (✓ зелёный / ✕ серый)
- * - Счётчик найденных букв
- * - Звуковые эффекты correct / wrong
- *
- * @param targetLetter Целевая буква для поиска (например, «А»).
- * @param onComplete   Колбэк: `true` если найдены все 5 букв.
- */
 @Composable
 fun LetterFinderGame(
     targetLetter: String,
     onComplete: (Boolean) -> Unit
 ) {
-    // Алфавит для генерации отвлекающих букв
     val allLetters = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
 
-    // Генерируем поле: 5 целевых + 5 случайных, перемешиваем
+    // ИСПРАВЛЕНО: allLetters.toList() вместо allLetters (String не имеет .shuffled() с лямбдой)
     val symbols = remember(targetLetter) {
-        val others = allLetters
+        val others = allLetters.toList()
             .filter { it.toString() != targetLetter }
             .shuffled()
             .take(DISTRACTOR_LETTER_COUNT)
@@ -147,23 +93,14 @@ fun LetterFinderGame(
         val result = mutableListOf<String>()
         repeat(TARGET_LETTER_COUNT) { result.add(targetLetter) }
         result.addAll(others)
-
         result.shuffled()
     }
 
-    // Состояние ячеек: индекс → правильная ли буква была нажата?
     val clickedStates = remember { mutableStateMapOf<Int, Boolean>() }
-
-    // Счётчик найденных букв
     var foundCount by remember { mutableIntStateOf(0) }
-
-    // Флаг завершения (блокирует повторные вызовы onComplete)
     var isCompleted by remember { mutableStateOf(false) }
-
-    // Прогресс: сколько осталось найти
     val remainingCount = TARGET_LETTER_COUNT - foundCount
 
-    // Разбиваем на строки по 5
     val rows = remember(symbols) {
         symbols.chunked(CELLS_PER_ROW)
     }
@@ -174,7 +111,6 @@ fun LetterFinderGame(
             .padding(GamePadding),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Заголовок
         Text(
             text = "Найди все буквы «$targetLetter»!",
             style = MaterialTheme.typography.headlineMedium,
@@ -184,7 +120,6 @@ fun LetterFinderGame(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Счётчик с прогрессом
         FoundCounter(
             found = foundCount,
             total = TARGET_LETTER_COUNT,
@@ -193,7 +128,6 @@ fun LetterFinderGame(
 
         Spacer(modifier = Modifier.height(GridTopSpacer))
 
-        // Сетка ячеек
         rows.forEachIndexed { rowIndex, row ->
             Row(
                 horizontalArrangement = Arrangement.spacedBy(CellHorizontalSpacing),
@@ -201,8 +135,6 @@ fun LetterFinderGame(
             ) {
                 row.forEachIndexed { colIndex, letter ->
                     val cellIndex = rowIndex * CELLS_PER_ROW + colIndex
-
-                    // Stagger-задержка для анимации появления
                     val appearDelay = (rowIndex * CELLS_PER_ROW + colIndex) * CELL_STAGGER_DELAY_MS
 
                     AnimatedLetterCell(
@@ -214,11 +146,9 @@ fun LetterFinderGame(
                         onTap = { correct ->
                             if (!isCompleted && !clickedStates.containsKey(cellIndex)) {
                                 clickedStates[cellIndex] = correct
-
                                 if (correct) {
                                     foundCount++
                                     AudioPlayer.playSFX("correct")
-
                                     if (foundCount >= TARGET_LETTER_COUNT) {
                                         isCompleted = true
                                         onComplete(true)
@@ -233,7 +163,6 @@ fun LetterFinderGame(
             }
         }
 
-        // Подсказка, если ещё не завершено
         if (!isCompleted) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
@@ -250,19 +179,8 @@ fun LetterFinderGame(
 // Счётчик найденных букв
 // -------------------------------------------------------------------------
 
-/**
- * Отображает прогресс поиска букв.
- *
- * @param found     Найдено букв.
- * @param total     Всего нужно найти.
- * @param remaining Осталось найти.
- */
 @Composable
-private fun FoundCounter(
-    found: Int,
-    total: Int,
-    remaining: Int
-) {
+private fun FoundCounter(found: Int, total: Int, remaining: Int) {
     val counterColor by animateColorAsState(
         targetValue = when {
             found == total -> FairyGreen
@@ -279,21 +197,14 @@ private fun FoundCounter(
     ) {
         Text(
             text = "Найдено: ",
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontSize = CounterFontSize
-            ),
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = CounterFontSize),
             color = DarkText
         )
-
         Text(
             text = "$found из $total",
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontSize = CounterFontSize,
-                fontWeight = FontWeight.Bold
-            ),
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = CounterFontSize, fontWeight = FontWeight.Bold),
             color = counterColor
         )
-
         if (found < total) {
             Text(
                 text = "  (осталось $remaining)",
@@ -311,19 +222,9 @@ private fun FoundCounter(
 }
 
 // -------------------------------------------------------------------------
-// Анимированная ячейка с буквой
+// Анимированная ячейка
 // -------------------------------------------------------------------------
 
-/**
- * Ячейка с буквой, появляющаяся с задержкой и анимацией.
- *
- * @param letter        Буква в ячейке.
- * @param targetLetter  Целевая буква.
- * @param isClicked     Была ли ячейка уже нажата.
- * @param isCorrect     Правильная ли буква была нажата (если isClicked = true).
- * @param appearDelay   Задержка перед появлением (мс).
- * @param onTap         Колбэк при нажатии: `true` если буква правильная.
- */
 @Composable
 private fun AnimatedLetterCell(
     letter: String,
@@ -348,9 +249,7 @@ private fun AnimatedLetterCell(
                 dampingRatio = Spring.DampingRatioMediumBouncy,
                 stiffness = Spring.StiffnessMedium
             )
-        ) + fadeIn(
-            animationSpec = tween(CELL_APPEAR_DURATION_MS)
-        )
+        ) + fadeIn(animationSpec = tween(CELL_APPEAR_DURATION_MS))
     ) {
         LetterCell(
             letter = letter,
@@ -366,20 +265,6 @@ private fun AnimatedLetterCell(
 // Ячейка с буквой
 // -------------------------------------------------------------------------
 
-/**
- * Отдельная ячейка с буквой.
- *
- * Состояния:
- * - **Не нажата**: голубой фон, буква
- * - **Нажата правильно**: зелёный фон + обводка, ✓
- * - **Нажата неправильно**: серый фон, ✕
- *
- * @param letter         Буква в ячейке.
- * @param targetLetter   Целевая буква для сравнения.
- * @param alreadyClicked Была ли нажата.
- * @param isCorrect      Правильный ли был ответ.
- * @param onTap          Колбэк: `true` если буква совпадает с целевой.
- */
 @Composable
 fun LetterCell(
     letter: String,
@@ -390,7 +275,6 @@ fun LetterCell(
 ) {
     val isTarget = letter == targetLetter
 
-    // Анимация цвета фона
     val backgroundColor by animateColorAsState(
         targetValue = when {
             !alreadyClicked -> FairyBlue
@@ -401,25 +285,18 @@ fun LetterCell(
         label = "CellBackground"
     )
 
-    // Анимация цвета обводки (только для правильных)
     val borderColor by animateColorAsState(
-        targetValue = if (alreadyClicked && isCorrect) {
-            FairyPurple
-        } else {
-            Color.Transparent
-        },
+        targetValue = if (alreadyClicked && isCorrect) FairyPurple else Color.Transparent,
         animationSpec = tween(COLOR_ANIMATION_DURATION_MS),
         label = "CellBorder"
     )
 
-    // Текст внутри ячейки
     val cellText = when {
         !alreadyClicked -> letter
         isCorrect -> "✓"
         else -> "✕"
     }
 
-    // Цвет текста
     val textColor = when {
         !alreadyClicked -> DarkText
         isCorrect -> Color.White
@@ -437,22 +314,16 @@ fun LetterCell(
             .background(backgroundColor)
             .then(
                 if (alreadyClicked && isCorrect) {
-                    Modifier.border(
-                        width = FoundBorderWidth,
-                        color = borderColor,
-                        shape = RoundedCornerShape(CellCornerRadius)
-                    )
+                    Modifier.border(FoundBorderWidth, borderColor, RoundedCornerShape(CellCornerRadius))
                 } else {
                     Modifier
                 }
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null, // Без ripple (сказочный стиль)
+                indication = null,
                 enabled = !alreadyClicked
-            ) {
-                onTap(isTarget)
-            },
+            ) { onTap(isTarget) },
         contentAlignment = Alignment.Center
     ) {
         Text(

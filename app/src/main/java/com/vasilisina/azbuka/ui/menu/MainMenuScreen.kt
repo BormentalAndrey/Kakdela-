@@ -14,10 +14,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,7 +28,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -45,10 +49,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.vasilisina.azbuka.R
 import com.vasilisina.azbuka.audio.AudioPlayer
 import com.vasilisina.azbuka.ui.theme.DarkText
@@ -76,6 +83,9 @@ private val ButtonCornerRadius = 16.dp
 private val ButtonDefaultElevation = 6.dp
 private val ButtonPressedElevation = 10.dp
 private val ButtonFocusedElevation = 8.dp
+private val ButtonIconSize = 28.dp
+private val TitleFontSize = 36.sp
+private val SubtitleFontSize = 22.sp
 
 @Composable
 fun MainMenuScreen(onPlay: () -> Unit, onAlbum: () -> Unit, onQuit: () -> Unit) {
@@ -102,23 +112,41 @@ fun MainMenuScreen(onPlay: () -> Unit, onAlbum: () -> Unit, onQuit: () -> Unit) 
 @Composable
 private fun MenuContent(alpha: Float, onPlay: () -> Unit, onAlbum: () -> Unit, onQuit: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = HorizontalPadding).alpha(alpha), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(VerticalSpacing)) {
-        Text(text = "Василисина азбука", style = MaterialTheme.typography.headlineLarge, color = DarkText, textAlign = TextAlign.Center)
-        Text(text = "Путешествие по России", style = MaterialTheme.typography.headlineMedium, color = DarkText, textAlign = TextAlign.Center)
+        // Декоративное облачко
+        Image(painter = painterResource(id = R.drawable.decoration_cloud), contentDescription = null, modifier = Modifier.size(120.dp, 60.dp), contentScale = ContentScale.Fit)
+
+        Text(text = "Василисина азбука", style = MaterialTheme.typography.headlineLarge.copy(fontSize = TitleFontSize, fontWeight = FontWeight.Bold), color = DarkText, textAlign = TextAlign.Center)
+        Text(text = "Путешествие по России", style = MaterialTheme.typography.headlineMedium.copy(fontSize = SubtitleFontSize), color = DarkText, textAlign = TextAlign.Center)
+
+        // Звёздочки-декор
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            repeat(5) { Image(painter = painterResource(id = R.drawable.decoration_star_small), contentDescription = null, modifier = Modifier.size(16.dp), contentScale = ContentScale.Fit) }
+        }
+
         Spacer(modifier = Modifier.height(TopSpacerHeight))
-        MainMenuButton(text = "Играть", color = FairyPurple, onClick = { AudioPlayer.playSFX("click"); onPlay() })
-        MainMenuButton(text = "Альбом успехов", color = FairyGreen, onClick = { AudioPlayer.playSFX("click"); onAlbum() })
-        MainMenuButton(text = "Выход", color = FairyPink, onClick = { AudioPlayer.playSFX("click"); onQuit() })
+
+        // Кнопка «Играть» с иконкой
+        MainMenuButton(text = "Играть", iconRes = R.drawable.btn_play, color = FairyPurple, onClick = { AudioPlayer.playSFX("click"); onPlay() })
+        // Кнопка «Альбом»
+        MainMenuButton(text = "Альбом успехов", iconRes = R.drawable.btn_album, color = FairyGreen, onClick = { AudioPlayer.playSFX("click"); onAlbum() })
+        // Кнопка «Выход»
+        MainMenuButton(text = "Выход", iconRes = R.drawable.btn_exit, color = FairyPink, onClick = { AudioPlayer.playSFX("click"); onQuit() })
     }
 }
 
 @Composable
-private fun MainMenuButton(text: String, color: Color, onClick: () -> Unit) {
-    // ИСПРАВЛЕНО: убран .then(Modifier.size(...)) — size принимает Dp, не Modifier
+private fun MainMenuButton(text: String, iconRes: Int, color: Color, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(BUTTON_WIDTH_FRACTION).height(ButtonHeight),
         shape = RoundedCornerShape(ButtonCornerRadius),
-        colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = DarkText, disabledContainerColor = color.copy(alpha = 0.4f), disabledContentColor = DarkText.copy(alpha = 0.4f)),
+        colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White, disabledContainerColor = color.copy(alpha = 0.4f), disabledContentColor = Color.White.copy(alpha = 0.4f)),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = ButtonDefaultElevation, pressedElevation = ButtonPressedElevation, focusedElevation = ButtonFocusedElevation, hoveredElevation = ButtonFocusedElevation, disabledElevation = 0.dp)
-    ) { Text(text = text, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center) }
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(ButtonIconSize), contentScale = ContentScale.Fit)
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(text = text, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, color = Color.White)
+        }
+    }
 }

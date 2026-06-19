@@ -21,7 +21,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
@@ -57,14 +60,12 @@ import com.vasilisina.azbuka.ui.theme.FairyGold
 import com.vasilisina.azbuka.ui.theme.FairyGreen
 import kotlinx.coroutines.delay
 
-private val ScreenPadding = 12.dp
-private val CharacterSpacer = 8.dp
-private val ElementSpacer = 10.dp
+private val ScreenPadding = 10.dp
+private val ElementSpacer = 8.dp
 private val CompleteButtonSpacer = 20.dp
 private const val COMPLETE_BUTTON_WIDTH_FRACTION = 0.5f
 private val CompleteButtonHeight = 50.dp
 private val ButtonCornerRadius = 14.dp
-private val CharacterSize = 100
 private const val TOTAL_STAGES = 3
 private const val STAGE_TRANSITION_DURATION_MS = 400
 private const val STAR_DISPLAY_DURATION_MS = 500
@@ -90,20 +91,29 @@ fun CountingLessonScreen(level: Int = 2, onComplete: (stars: Int) -> Unit) {
         Image(painter = painterResource(id = R.drawable.bg_level_2_counting), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.85f)))
 
-        Column(modifier = Modifier.fillMaxSize().padding(ScreenPadding), horizontalAlignment = Alignment.CenterHorizontally) {
-            CharacterView(state = kuzyaState, sizeDp = CharacterSize)
-            Spacer(modifier = Modifier.height(CharacterSpacer))
-            StageProgressIndicator(progress = stageProgress, currentStage = stage)
-            Spacer(modifier = Modifier.height(ElementSpacer))
+        // Основной ряд: игра слева + Кузя справа
+        Row(modifier = Modifier.fillMaxSize().padding(ScreenPadding), verticalAlignment = Alignment.CenterVertically) {
+            // Игровая область слева
+            Column(modifier = Modifier.weight(1f).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                StageProgressIndicator(progress = stageProgress, currentStage = stage)
+                Spacer(modifier = Modifier.height(ElementSpacer))
 
-            Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                when (stage) {
-                    0 -> CountingGame(onResult = { correct -> if (correct) earnedStars++; stage = 1 })
-                    1 -> MathExampleGame(onResult = { correct -> if (correct) earnedStars++; stage = 2 })
-                    2 -> ComparisonGame(onResult = { correct -> if (correct) earnedStars++; if (earnedStars == 0) earnedStars = 1; kuzyaState = kuzyaState.clap(); stage = 3 })
-                    3 -> LevelComplete(earnedStars = earnedStars, onComplete = { GameState.completeLevel(level, earnedStars); onComplete(earnedStars) })
+                // ✅ ПРОКРУТКА ДОБАВЛЕНА
+                val scrollState = rememberScrollState()
+                Box(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState), contentAlignment = Alignment.Center) {
+                    when (stage) {
+                        0 -> CountingGame(onResult = { correct -> if (correct) earnedStars++; stage = 1 })
+                        1 -> MathExampleGame(onResult = { correct -> if (correct) earnedStars++; stage = 2 })
+                        2 -> ComparisonGame(onResult = { correct -> if (correct) earnedStars++; if (earnedStars == 0) earnedStars = 1; kuzyaState = kuzyaState.clap(); stage = 3 })
+                        3 -> LevelComplete(earnedStars = earnedStars, onComplete = { GameState.completeLevel(level, earnedStars); onComplete(earnedStars) })
+                    }
                 }
             }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Кузя справа
+            CharacterView(state = kuzyaState, sizeDp = 160)
         }
     }
 }

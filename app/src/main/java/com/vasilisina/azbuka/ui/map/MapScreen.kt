@@ -14,33 +14,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,25 +38,19 @@ import androidx.compose.ui.unit.sp
 import com.vasilisina.azbuka.R
 import com.vasilisina.azbuka.audio.AudioPlayer
 import com.vasilisina.azbuka.data.GameState
-import com.vasilisina.azbuka.ui.common.AdaptiveBox
-import com.vasilisina.azbuka.ui.theme.DarkText
-import com.vasilisina.azbuka.ui.theme.FairyGold
-import com.vasilisina.azbuka.ui.theme.FairyGreen
-import com.vasilisina.azbuka.ui.theme.FairyPink
-import com.vasilisina.azbuka.ui.theme.FairyPurple
-import com.vasilisina.azbuka.ui.theme.WhiteBackground
+import com.vasilisina.azbuka.ui.theme.*
+import kotlinx.coroutines.delay
 
-private val MapPadding = 12.dp
-private val CityPointSize = 54.dp
-private val CityPointPadding = 4.dp
-private val BackButtonCornerRadius = 10.dp
-private val LevelNumberFontSize = 20.sp
-private val CityNameFontSize = 13.sp
-private val StarsFontSize = 12.sp
+private val MapPadding = 10.dp
+private val CityPointSize = 50.dp
+private val CityPointPadding = 3.dp
+private val BackButtonCornerRadius = 8.dp
+private val LevelNumberFontSize = 18.sp
+private val CityNameFontSize = 12.sp
 private const val CITY_ANIMATION_DURATION_MS = 400
-private const val CITY_STAGGER_DELAY_MS = 100L
-private val CityPointElevation = 6.dp
-private val BackButtonElevation = 3.dp
+private const val CITY_STAGGER_DELAY_MS = 80L
+private val CityPointElevation = 5.dp
+private val BackButtonElevation = 2.dp
 private val CompletedBorderWidth = 2.dp
 private val CompletedBorderColor = FairyGreen
 
@@ -97,14 +72,12 @@ fun MapScreen(onLevelSelected: (Int) -> Unit, onBack: () -> Unit) {
     }
     val cityRows = remember(cities) { listOf(cities.subList(0, 2), cities.subList(2, 4), cities.subList(4, 6)) }
 
-    AdaptiveBox {
-        Box(modifier = Modifier.fillMaxSize().background(WhiteBackground).statusBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing).navigationBarsPadding()) {
-            MapBackground()
-            Column(modifier = Modifier.fillMaxSize().padding(MapPadding), verticalArrangement = Arrangement.SpaceEvenly) {
-                cityRows.forEachIndexed { rowIndex, row -> CityRow(cities = row, rowIndex = rowIndex, onLevelSelected = onLevelSelected) }
-            }
-            BackButton(onClick = { AudioPlayer.playSFX("click"); onBack() }, modifier = Modifier.align(Alignment.TopStart).padding(MapPadding))
+    Box(modifier = Modifier.fillMaxSize().background(WhiteBackground).systemBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing).navigationBarsPadding()) {
+        MapBackground()
+        Column(modifier = Modifier.fillMaxSize().padding(MapPadding), verticalArrangement = Arrangement.SpaceEvenly) {
+            cityRows.forEachIndexed { rowIndex, row -> CityRow(cities = row, rowIndex = rowIndex, onLevelSelected = onLevelSelected) }
         }
+        BackButton(onClick = { AudioPlayer.playSFX("click"); onBack() }, modifier = Modifier.align(Alignment.TopStart).padding(MapPadding))
     }
 }
 
@@ -112,18 +85,18 @@ fun MapScreen(onLevelSelected: (Int) -> Unit, onBack: () -> Unit) {
 private fun MapBackground() {
     Box(modifier = Modifier.fillMaxSize()) {
         Image(painter = painterResource(id = R.drawable.map_russia), contentDescription = "Карта России", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, WhiteBackground.copy(alpha = 0.1f), WhiteBackground.copy(alpha = 0.25f)))))
+        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, WhiteBackground.copy(alpha = 0.2f)))))
     }
 }
 
 @Composable
 private fun CityRow(cities: List<City>, rowIndex: Int, onLevelSelected: (Int) -> Unit) {
     var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { kotlinx.coroutines.delay(CITY_STAGGER_DELAY_MS * (rowIndex + 1)); isVisible = true }
+    LaunchedEffect(Unit) { delay(CITY_STAGGER_DELAY_MS * (rowIndex + 1)); isVisible = true }
 
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (cities.size == 1) Arrangement.Center else Arrangement.SpaceEvenly) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         cities.forEach { city ->
-            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(CITY_ANIMATION_DURATION_MS)) + scaleIn(initialScale = 0.3f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))) {
+            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(CITY_ANIMATION_DURATION_MS)) + scaleIn(initialScale = 0.3f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy))) {
                 CityPoint(cityName = city.name, level = city.level, onLevelSelected = onLevelSelected)
             }
         }
@@ -139,23 +112,17 @@ private fun CityPoint(cityName: String, level: Int, onLevelSelected: (Int) -> Un
     val pointColor by animateColorAsState(targetValue = if (isUnlocked) FairyGold else Color.Gray.copy(alpha = 0.45f), animationSpec = tween(300), label = "Point")
     val borderColor by animateColorAsState(targetValue = if (isCompleted) CompletedBorderColor else Color.Transparent, animationSpec = tween(300), label = "Border")
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = isUnlocked) { AudioPlayer.playSFX("click"); onLevelSelected(level) }.padding(CityPointPadding)) {
-        Box(
-            modifier = Modifier.size(CityPointSize).shadow(if (isUnlocked) CityPointElevation else 0.dp, CircleShape).background(pointColor, CircleShape).then(if (isCompleted) Modifier.border(CompletedBorderWidth, borderColor, CircleShape) else Modifier),
-            contentAlignment = Alignment.Center
-        ) {
-            if (!isUnlocked) {
-                Image(painter = painterResource(id = R.drawable.icon_lock), contentDescription = "Закрыто", modifier = Modifier.size(24.dp), contentScale = ContentScale.Fit)
-            } else {
-                Text(text = level.toString(), style = MaterialTheme.typography.headlineMedium.copy(fontSize = LevelNumberFontSize, fontWeight = FontWeight.Bold), color = DarkText, textAlign = TextAlign.Center)
-            }
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = isUnlocked) { AudioPlayer.playSFX("click"); onLevelSelected(level) }.padding(CityPointPadding)) {
+        Box(modifier = Modifier.size(CityPointSize).shadow(if (isUnlocked) CityPointElevation else 0.dp, CircleShape).background(pointColor, CircleShape).border(if (isCompleted) CompletedBorderWidth else 0.dp, borderColor, CircleShape), contentAlignment = Alignment.Center) {
+            if (!isUnlocked) Image(painter = painterResource(id = R.drawable.icon_lock), contentDescription = "Закрыто", modifier = Modifier.size(22.dp), contentScale = ContentScale.Fit)
+            else Text(text = level.toString(), style = MaterialTheme.typography.headlineMedium.copy(fontSize = LevelNumberFontSize, fontWeight = FontWeight.Bold), color = DarkText)
         }
-        Spacer(modifier = Modifier.height(1.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Text(text = cityName, style = MaterialTheme.typography.bodyLarge.copy(fontSize = CityNameFontSize, fontWeight = if (isCompleted) FontWeight.Bold else FontWeight.Normal), color = if (isUnlocked) DarkText else Color.Gray, textAlign = TextAlign.Center)
         if (isUnlocked && isCompleted) {
             Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-                repeat(stars) { Image(painter = painterResource(id = R.drawable.star_filled), contentDescription = "★", modifier = Modifier.size(12.dp), contentScale = ContentScale.Fit) }
-                repeat(GameState.MAX_STARS_PER_LEVEL - stars) { Image(painter = painterResource(id = R.drawable.star_empty), contentDescription = "☆", modifier = Modifier.size(12.dp), contentScale = ContentScale.Fit) }
+                repeat(stars) { Image(painter = painterResource(id = R.drawable.star_filled), contentDescription = null, modifier = Modifier.size(10.dp)) }
+                repeat(GameState.MAX_STARS_PER_LEVEL - stars) { Image(painter = painterResource(id = R.drawable.star_empty), contentDescription = null, modifier = Modifier.size(10.dp)) }
             }
         }
     }
@@ -168,10 +135,10 @@ private fun BackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier.shadow(BackButtonElevation, RoundedCornerShape(BackButtonCornerRadius)),
         shape = RoundedCornerShape(BackButtonCornerRadius),
         colors = ButtonDefaults.buttonColors(containerColor = FairyPink, contentColor = Color.White),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = BackButtonElevation, pressedElevation = BackButtonElevation * 1.5f, focusedElevation = BackButtonElevation, hoveredElevation = BackButtonElevation, disabledElevation = 0.dp)
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = BackButtonElevation, pressedElevation = BackButtonElevation * 2f)
     ) {
-        Image(painter = painterResource(id = R.drawable.icon_back_arrow), contentDescription = "Назад", modifier = Modifier.size(20.dp), contentScale = ContentScale.Fit)
-        Spacer(modifier = Modifier.size(3.dp))
-        Text(text = "Назад", style = MaterialTheme.typography.labelLarge, color = Color.White)
+        Image(painter = painterResource(id = R.drawable.icon_back_arrow), contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = "Назад", style = MaterialTheme.typography.labelLarge)
     }
 }

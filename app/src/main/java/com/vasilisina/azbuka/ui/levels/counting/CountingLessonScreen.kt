@@ -11,7 +11,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,15 +20,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -61,7 +54,6 @@ import com.vasilisina.azbuka.ui.theme.DarkText
 import com.vasilisina.azbuka.ui.theme.FairyBlue
 import com.vasilisina.azbuka.ui.theme.FairyGold
 import com.vasilisina.azbuka.ui.theme.FairyGreen
-import com.vasilisina.azbuka.ui.theme.FairyPurple
 import kotlinx.coroutines.delay
 
 private val ScreenPadding = 12.dp
@@ -121,130 +113,6 @@ private fun StageProgressIndicator(progress: Float, currentStage: Int) {
         Text(text = if (currentStage < TOTAL_STAGES) "Этап ${currentStage + 1} из $TOTAL_STAGES" else "Завершено!", style = MaterialTheme.typography.bodyMedium, color = DarkText, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(4.dp))
         LinearProgressIndicator(progress = progress, modifier = Modifier.fillMaxWidth().height(StageProgressHeight), color = FairyGold, trackColor = FairyBlue.copy(alpha = 0.3f))
-    }
-}
-
-@Composable
-fun CountingGame(onResult: (Boolean) -> Unit) {
-    val targetCount = remember { (3..9).random() }
-    val options = remember(targetCount) {
-        val wrongs = mutableSetOf<Int>()
-        while (wrongs.size < 2) { wrongs.add((targetCount - 3..targetCount + 3).filter { it > 0 && it != targetCount }.random()) }
-        (wrongs + targetCount).shuffled()
-    }
-    var selectedOption by remember { mutableStateOf<Int?>(null) }
-
-    LaunchedEffect(selectedOption) {
-        if (selectedOption != null) {
-            val isCorrect = selectedOption == targetCount
-            if (isCorrect) AudioPlayer.playSFX("correct") else AudioPlayer.playSFX("wrong")
-            delay(1000)
-            onResult(isCorrect)
-        }
-    }
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text(text = "Сколько здесь звёздочек?", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.size(160.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(targetCount) { Text(text = "⭐", fontSize = 40.sp, textAlign = TextAlign.Center) }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            options.forEach { option ->
-                val isSelected = selectedOption == option
-                val isCorrect = option == targetCount
-                val bg = when { selectedOption == null -> FairyBlue.copy(alpha = 0.2f); isSelected && isCorrect -> FairyGreen; isSelected && !isCorrect -> Color.Red.copy(alpha = 0.6f); !isSelected && isCorrect -> FairyGreen; else -> FairyBlue.copy(alpha = 0.2f) }
-                Card(modifier = Modifier.size(64.dp).clickable(enabled = selectedOption == null) { selectedOption = option }, shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = bg), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(text = option.toString(), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = DarkText) }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun MathExampleGame(onResult: (Boolean) -> Unit) {
-    val a = remember { (1..5).random() }
-    val b = remember { (1..5).random() }
-    val correctAnswer = a + b
-    val options = remember(correctAnswer) {
-        val wrongs = mutableSetOf<Int>()
-        while (wrongs.size < 2) { wrongs.add((correctAnswer - 3..correctAnswer + 3).filter { it > 0 && it != correctAnswer }.random()) }
-        (wrongs + correctAnswer).shuffled()
-    }
-    var selectedOption by remember { mutableStateOf<Int?>(null) }
-
-    LaunchedEffect(selectedOption) {
-        if (selectedOption != null) {
-            val isCorrect = selectedOption == correctAnswer
-            if (isCorrect) AudioPlayer.playSFX("correct") else AudioPlayer.playSFX("wrong")
-            delay(1000)
-            onResult(isCorrect)
-        }
-    }
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text(text = "Реши пример", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(text = "$a + $b = ?", fontSize = 52.sp, fontWeight = FontWeight.ExtraBold, color = FairyPurple)
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            options.forEach { option ->
-                val isSelected = selectedOption == option
-                val isCorrect = option == correctAnswer
-                val bg = when { selectedOption == null -> FairyGold; isSelected && isCorrect -> FairyGreen; isSelected && !isCorrect -> Color.Red.copy(alpha = 0.6f); !isSelected && isCorrect -> FairyGreen; else -> Color.LightGray }
-                Card(modifier = Modifier.size(70.dp).clickable(enabled = selectedOption == null) { selectedOption = option }, shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = bg), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(text = option.toString(), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White) }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ComparisonGame(onResult: (Boolean) -> Unit) {
-    val a = remember { (1..10).random() }
-    val b = remember { (1..10).random() }
-    val correctSign = if (a > b) ">" else if (a < b) "<" else "="
-    val options = listOf("<", "=", ">")
-    var selectedOption by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(selectedOption) {
-        if (selectedOption != null) {
-            val isCorrect = selectedOption == correctSign
-            if (isCorrect) AudioPlayer.playSFX("correct") else AudioPlayer.playSFX("wrong")
-            delay(1200)
-            onResult(isCorrect)
-        }
-    }
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text(text = "Сравни числа", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(text = a.toString(), fontSize = 52.sp, fontWeight = FontWeight.ExtraBold, color = FairyPurple)
-            Box(modifier = Modifier.size(60.dp).background(FairyBlue.copy(alpha = 0.2f), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) { Text(text = selectedOption ?: "?", fontSize = 40.sp, fontWeight = FontWeight.Bold, color = DarkText) }
-            Text(text = b.toString(), fontSize = 52.sp, fontWeight = FontWeight.ExtraBold, color = FairyPurple)
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            options.forEach { option ->
-                val isSelected = selectedOption == option
-                val isCorrect = option == correctSign
-                val bg = when { selectedOption == null -> FairyGold; isSelected && isCorrect -> FairyGreen; isSelected && !isCorrect -> Color.Red.copy(alpha = 0.6f); !isSelected && isCorrect && selectedOption != null -> FairyGreen; else -> if (selectedOption != null) Color.LightGray else FairyGold }
-                Card(modifier = Modifier.size(64.dp).clickable(enabled = selectedOption == null) { selectedOption = option }, shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = bg), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(text = option, fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Color.White) }
-                }
-            }
-        }
     }
 }
 

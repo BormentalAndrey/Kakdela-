@@ -48,10 +48,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun configureDisplay() {
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        // ГОРИЗОНТАЛЬНАЯ ориентация
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Используем WindowCompat для безопасного доступа к insets
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         val controller = WindowInsetsControllerCompat(window, window.decorView)

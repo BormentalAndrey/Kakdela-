@@ -112,7 +112,7 @@ private data class FireworkParticle(
 )
 
 @Composable
-fun FinalSceneScreen(level: Int = 5, onComplete: (stars: Int) -> Unit) {
+fun FinalSceneScreen(level: Int = 6, onComplete: (stars: Int) -> Unit) {
     val context = LocalContext.current
     var stage by remember { mutableIntStateOf(0) }
     val earnedStars = FINAL_MAX_STARS
@@ -125,7 +125,17 @@ fun FinalSceneScreen(level: Int = 5, onComplete: (stars: Int) -> Unit) {
         onDispose { AudioPlayer.stopMusic() }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(WhiteBackground).statusBarsPadding().navigationBarsPadding()) {
+    Box(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        // Фон уровня
+        Image(
+            painter = painterResource(id = R.drawable.bg_level_5_final),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        // Полупрозрачный слой для читаемости
+        Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.6f)))
+
         when (stage) {
             0 -> TableSettingGame(onComplete = { vasilisaState = vasilisaState.copy(emotion = CharacterEmotion.CLAP); kuzyaState = kuzyaState.copy(emotion = CharacterEmotion.CLAP); stage = 1 })
             1 -> FireworksAnimation(onDone = { stage = 2 })
@@ -217,7 +227,7 @@ private fun FireworksAnimation(onDone: () -> Unit) {
 
     LaunchedEffect(Unit) { showFireworks = true; delay(FIREWORKS_DURATION_MS); onDone() }
 
-    Box(modifier = Modifier.fillMaxSize().background(Brush.radialGradient(colors = listOf(FairyPurple.copy(alpha = 0.3f), FairyBlue.copy(alpha = 0.15f), WhiteBackground))), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.fillMaxSize().background(Brush.radialGradient(colors = listOf(FairyPurple.copy(alpha = 0.3f), FairyBlue.copy(alpha = 0.15f), Color.Transparent))), contentAlignment = Alignment.Center) {
         particles.forEach { particle ->
             var particleVisible by remember { mutableStateOf(false) }; var currentX by remember { mutableStateOf(0f) }; var currentY by remember { mutableStateOf(0f) }
             LaunchedEffect(showFireworks) { if (showFireworks) { delay(particle.delay); particleVisible = true; val steps = 20; for (i in 1..steps) { currentX = particle.targetX * (i.toFloat() / steps); currentY = particle.targetY * (i.toFloat() / steps); delay(16) }; delay(500); particleVisible = false } }
@@ -262,23 +272,13 @@ private fun FinalAlbum(vasilisaState: CharacterState, kuzyaState: CharacterState
 
         Spacer(modifier = Modifier.height(32.dp))
         AnimatedVisibility(visible = showContent, enter = fadeIn(tween(600, delayMillis = 1200))) {
-            // ИСПРАВЛЕНО: адаптивная ширина кнопки под любой экран
             Button(
                 onClick = { AudioPlayer.playSFX("click"); onDone() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
-                    .height(60.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp).height(60.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = FairyPurple, contentColor = Color.White),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)
-            ) {
-                Text(
-                    text = "Завершить",
-                    style = MaterialTheme.typography.labelLarge,
-                    maxLines = 1
-                )
-            }
+            ) { Text("Завершить", style = MaterialTheme.typography.labelLarge, maxLines = 1) }
         }
     }
 }

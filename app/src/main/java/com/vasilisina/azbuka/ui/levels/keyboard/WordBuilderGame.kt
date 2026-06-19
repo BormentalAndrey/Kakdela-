@@ -55,9 +55,9 @@ import com.vasilisina.azbuka.ui.theme.FairyPurple
 import kotlinx.coroutines.delay
 
 private val WordPool = listOf("МАМА", "РУСЬ", "МИР")
-private val SlotSize = 52.dp
-private val LetterButtonSize = 52.dp
-private val CornerRadius = 12.dp
+private val SlotSize = 56.dp
+private val LetterButtonSize = 58.dp
+private val CornerRadius = 14.dp
 private val SlotBorderWidth = 2.dp
 private val SlotSpacing = 6.dp
 private val LetterButtonSpacing = 6.dp
@@ -71,8 +71,8 @@ private const val ELEMENT_STAGGER_DELAY_MS = 60L
 private const val ELEMENT_APPEAR_DURATION_MS = 250
 private val SlotElevation = 3.dp
 private val LetterButtonElevation = 3.dp
-private val SlotFontSize = 24.sp
-private val LetterButtonFontSize = 24.sp
+private val SlotFontSize = 26.sp
+private val LetterButtonFontSize = 26.sp
 private const val MAX_LETTERS_PER_ROW = 6
 
 private data class IndexedLetter(val id: Int, val char: String) {
@@ -108,9 +108,7 @@ fun WordBuilderGame(onResult: (correct: Boolean) -> Unit) {
                 var isVisible by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) { delay(ELEMENT_STAGGER_DELAY_MS * index); isVisible = true }
                 AnimatedVisibility(visible = isVisible, enter = scaleIn(initialScale = 0.3f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(animationSpec = tween(ELEMENT_APPEAR_DURATION_MS))) {
-                    WordSlot(letter = letter?.char, isEmpty = letter == null, onClick = {
-                        if (letter != null) { usedIndices.remove(letter.id); slots[index] = null }
-                    })
+                    WordSlot(letter = letter?.char, isEmpty = letter == null, onClick = { if (letter != null) { usedIndices.remove(letter.id); slots[index] = null } })
                 }
             }
         }
@@ -126,9 +124,7 @@ fun WordBuilderGame(onResult: (correct: Boolean) -> Unit) {
                     var isVisible by remember { mutableStateOf(false) }
                     LaunchedEffect(Unit) { delay(ELEMENT_STAGGER_DELAY_MS * letterData.indexOf(indexedLetter)); isVisible = true }
                     AnimatedVisibility(visible = isVisible, enter = scaleIn(initialScale = 0.3f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(animationSpec = tween(ELEMENT_APPEAR_DURATION_MS))) {
-                        WordLetterButton(letter = indexedLetter.char, isUsed = isUsed, onClick = {
-                            if (!isUsed) { val firstEmpty = slots.indexOf(null); if (firstEmpty != -1) { slots[firstEmpty] = indexedLetter; usedIndices.add(indexedLetter.id) } }
-                        })
+                        WordLetterButton(letter = indexedLetter.char, isUsed = isUsed, onClick = { if (!isUsed) { val firstEmpty = slots.indexOf(null); if (firstEmpty != -1) { slots[firstEmpty] = indexedLetter; usedIndices.add(indexedLetter.id) } } })
                     }
                 }
             }
@@ -137,14 +133,7 @@ fun WordBuilderGame(onResult: (correct: Boolean) -> Unit) {
 
         Spacer(modifier = Modifier.height(ResetButtonSpacer))
 
-        Button(
-            onClick = { usedIndices.clear(); slots.fill(null) },
-            enabled = !isCompleted && usedIndices.isNotEmpty(),
-            modifier = Modifier.height(42.dp),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = FairyPink)
-        ) { Text("Сбросить", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
-
+        Button(onClick = { usedIndices.clear(); slots.fill(null) }, enabled = !isCompleted && usedIndices.isNotEmpty(), modifier = Modifier.height(44.dp), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyPink)) { Text("Сброс", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
         Spacer(modifier = Modifier.height(8.dp))
     }
 }

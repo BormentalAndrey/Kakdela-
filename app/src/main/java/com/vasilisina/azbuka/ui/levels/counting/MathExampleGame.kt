@@ -9,6 +9,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -87,7 +88,6 @@ fun MathExampleGame(onResult: (correct: Boolean) -> Unit) {
 
     LaunchedEffect(Unit) { delay(EXAMPLE_APPEAR_DELAY_MS); showExample = true }
 
-    // ✅ БЕЗ verticalScroll — прокрутка есть в CountingLessonScreen
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(GamePadding)) {
         Text(text = "Реши пример:", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(ExampleToOptionsSpacer))

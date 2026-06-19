@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -200,23 +199,29 @@ private fun RiddleGame(pool: List<RiddleData>, title: String, onResult: (Boolean
         }
         Spacer(modifier = Modifier.height(20.dp))
 
+        // ИСПРАВЛЕНО: убран weight, используется fillMaxWidth внутри Row через weight в GameImageCell
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
             options.forEachIndexed { index, resId ->
                 val isSelected = selectedIndex == index
                 val isCorrectOption = index == currentRiddle.correctIndex
-                GameImageCell(resId = resId, isSelected = isSelected, isCorrect = isCorrectOption, isLocked = isLocked, onClick = {
-                    if (!isLocked) {
-                        selectedIndex = index; isLocked = true; isCorrectAnswer = isCorrectOption; showResult = true
-                        if (isCorrectOption) { correctCount++; AudioPlayer.playSFX("correct") } else { AudioPlayer.playSFX("wrong") }
-                        coroutineScope.launch {
-                            delay(RESULT_DELAY_MS)
-                            if (correctCount < CORRECT_NEEDED) {
-                                currentRiddle = pool.filter { it != currentRiddle }.random()
-                                selectedIndex = -1; isLocked = false; showResult = false
+                // ИСПРАВЛЕНО: передаём modifier с weight внутрь RowScope
+                GameImageCell(
+                    modifier = Modifier.weight(1f),
+                    resId = resId, isSelected = isSelected, isCorrect = isCorrectOption, isLocked = isLocked,
+                    onClick = {
+                        if (!isLocked) {
+                            selectedIndex = index; isLocked = true; isCorrectAnswer = isCorrectOption; showResult = true
+                            if (isCorrectOption) { correctCount++; AudioPlayer.playSFX("correct") } else { AudioPlayer.playSFX("wrong") }
+                            coroutineScope.launch {
+                                delay(RESULT_DELAY_MS)
+                                if (correctCount < CORRECT_NEEDED) {
+                                    currentRiddle = pool.filter { it != currentRiddle }.random()
+                                    selectedIndex = -1; isLocked = false; showResult = false
+                                }
                             }
                         }
                     }
-                })
+                )
             }
         }
 
@@ -227,17 +232,23 @@ private fun RiddleGame(pool: List<RiddleData>, title: String, onResult: (Boolean
     }
 }
 
+// ИСПРАВЛЕНО: modifier передаётся из RowScope, weight работает
 @Composable
-private fun GameImageCell(resId: Int, isSelected: Boolean, isCorrect: Boolean, isLocked: Boolean, onClick: () -> Unit) {
+private fun GameImageCell(
+    modifier: Modifier = Modifier,
+    resId: Int, isSelected: Boolean, isCorrect: Boolean, isLocked: Boolean, onClick: () -> Unit
+) {
     val bgColor by animateColorAsState(targetValue = when { isSelected && isCorrect -> FairyGreen; isSelected && !isCorrect -> Color.Red.copy(alpha = 0.7f); isLocked && isCorrect -> FairyGreen.copy(alpha = 0.3f); else -> FairyBlue }, animationSpec = tween(300), label = "CellBg")
     val borderColor by animateColorAsState(targetValue = when { isSelected -> FairyGold; isLocked && isCorrect && !isSelected -> FairyGreen; else -> Color.Transparent }, animationSpec = tween(300), label = "CellBorder")
     val elevation = if (isSelected) 10.dp else 6.dp
 
-    // ИСПРАВЛЕНО: добавлен импорт weight
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-        Box(modifier = Modifier.size(ItemCellSize).shadow(elevation, RoundedCornerShape(ItemCornerRadius)).background(bgColor, RoundedCornerShape(ItemCornerRadius)).then(if (borderColor != Color.Transparent) Modifier.border(3.dp, borderColor, RoundedCornerShape(ItemCornerRadius)) else Modifier).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = !isLocked) { onClick() }, contentAlignment = Alignment.Center) {
-            Image(painter = painterResource(id = resId), contentDescription = null, modifier = Modifier.size(52.dp), contentScale = ContentScale.Fit)
-        }
+    Box(
+        modifier = modifier.size(ItemCellSize).shadow(elevation, RoundedCornerShape(ItemCornerRadius)).background(bgColor, RoundedCornerShape(ItemCornerRadius))
+            .then(if (borderColor != Color.Transparent) Modifier.border(3.dp, borderColor, RoundedCornerShape(ItemCornerRadius)) else Modifier)
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = !isLocked) { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Image(painter = painterResource(id = resId), contentDescription = null, modifier = Modifier.size(52.dp), contentScale = ContentScale.Fit)
     }
 }
 

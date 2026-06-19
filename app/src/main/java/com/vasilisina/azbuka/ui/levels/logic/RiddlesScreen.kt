@@ -9,6 +9,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -46,7 +47,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -68,13 +71,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val ScreenPadding = 16.dp
-private val CharacterSpacer = 16.dp
-private val ElementSpacer = 6.dp
+private val CharacterSpacer = 12.dp
+private val ElementSpacer = 4.dp
 private val CompleteButtonSpacer = 32.dp
 private const val COMPLETE_BUTTON_WIDTH_FRACTION = 0.5f
 private val CompleteButtonHeight = 60.dp
 private val ButtonCornerRadius = 16.dp
-private val CharacterSize = 130
+private val CharacterSize = 120
 private const val TOTAL_STAGES = 3
 private const val CORRECT_NEEDED = 3
 private const val STAGE_TRANSITION_DURATION_MS = 400
@@ -173,8 +176,21 @@ fun RiddlesScreen(level: Int = 5, onComplete: (stars: Int) -> Unit) {
 
     val stageProgress = (stage.coerceIn(0, TOTAL_STAGES)).toFloat() / TOTAL_STAGES
 
-    Box(modifier = Modifier.fillMaxSize().background(WhiteBackground).statusBarsPadding().navigationBarsPadding().padding(ScreenPadding), contentAlignment = Alignment.Center) {
-        Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+    Box(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        // Фон уровня
+        Image(
+            painter = painterResource(id = R.drawable.bg_level_4_logic),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        // Полупрозрачный слой для читаемости
+        Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.7f)))
+
+        Column(
+            modifier = Modifier.fillMaxSize().padding(ScreenPadding),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             CharacterView(state = kuzyaState, sizeDp = CharacterSize)
             Spacer(modifier = Modifier.height(CharacterSpacer))
             StageProgressIndicator(progress = stageProgress, currentStage = stage)
@@ -225,22 +241,18 @@ private fun BuildWordGame(title: String, onResult: (Boolean) -> Unit) {
         Text(text = "Правильно: $correctCount из $CORRECT_NEEDED", style = MaterialTheme.typography.bodyMedium.copy(fontSize = ProgressTextSize, fontWeight = FontWeight.Medium), color = FairyGold, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Загадка
-        Box(modifier = Modifier.fillMaxWidth().background(FairyPurple.copy(alpha = 0.1f), RoundedCornerShape(18.dp)).padding(12.dp), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.fillMaxWidth().background(FairyPurple.copy(alpha = 0.2f), RoundedCornerShape(18.dp)).padding(12.dp), contentAlignment = Alignment.Center) {
             Text(text = currentRiddle.text, style = MaterialTheme.typography.bodyLarge.copy(fontSize = RiddleTextSize, fontWeight = FontWeight.Medium, lineHeight = 26.sp), color = FairyPurple, textAlign = TextAlign.Center)
         }
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Слоты — в несколько строк если нужно
         val slotRows = slots.chunked(MAX_SLOTS_PER_ROW)
         slotRows.forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                row.forEachIndexed { colIndex, letter ->
-                    val globalIndex = slots.indexOf(letter)
-                    val realIndex = if (globalIndex >= 0) globalIndex else slots.indexOfFirst { it == '_' && slots.subList(0, slots.size).indexOf(it) == globalIndex }
+                row.forEachIndexed { _, letter ->
+                    val idx = slots.indexOf(letter)
                     Box(
-                        modifier = Modifier.size(SlotSize).background(if (letter != '_') FairyGold.copy(alpha = 0.2f) else Color.White, RoundedCornerShape(10.dp)).border(2.dp, if (letter != '_') FairyGold else FairyBlue, RoundedCornerShape(10.dp)).clickable(enabled = letter != '_' && !isLocked) {
-                            val idx = slots.indexOf(letter)
+                        modifier = Modifier.size(SlotSize).background(if (letter != '_') FairyGold.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.8f), RoundedCornerShape(10.dp)).border(2.dp, if (letter != '_') FairyGold else FairyBlue, RoundedCornerShape(10.dp)).clickable(enabled = letter != '_' && !isLocked) {
                             if (idx >= 0 && letter != '_') {
                                 val lastUsed = usedLetterIndices.lastOrNull { letterOptions[it] == letter }
                                 if (lastUsed != null) { usedLetterIndices.remove(lastUsed); slots[idx] = '_' }
@@ -254,7 +266,6 @@ private fun BuildWordGame(title: String, onResult: (Boolean) -> Unit) {
         }
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Кнопки с буквами — в несколько строк
         val letterRows = letterOptions.chunked(MAX_LETTERS_PER_ROW)
         letterRows.forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -274,7 +285,6 @@ private fun BuildWordGame(title: String, onResult: (Boolean) -> Unit) {
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Кнопки управления
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(onClick = { usedLetterIndices.clear(); slots.fill('_') }, enabled = usedLetterIndices.isNotEmpty() && !isLocked, modifier = Modifier.height(42.dp), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyPink)) { Text("Сброс", fontSize = 16.sp) }
             Button(

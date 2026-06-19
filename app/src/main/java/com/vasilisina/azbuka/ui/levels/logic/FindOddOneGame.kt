@@ -9,6 +9,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -65,18 +68,47 @@ private val ItemElevation = 6.dp
 private val ItemSelectedElevation = 10.dp
 private val SelectedBorderWidth = 3.dp
 private val CorrectBorderWidth = 3.dp
-private val EmojiFontSize = 40.sp
 private val HintFontSize = 16.sp
 private val CategoryFontSize = 14.sp
 
-private data class GameItem(val emoji: String, val category: String)
+private data class GameItem(val imageRes: Int, val category: String, val name: String)
 
 private val ItemSets = listOf(
-    listOf(GameItem("🍎", "Фрукты"), GameItem("🍌", "Фрукты"), GameItem("🍊", "Фрукты"), GameItem("🚗", "Транспорт")),
-    listOf(GameItem("🐶", "Животные"), GameItem("🐱", "Животные"), GameItem("🐰", "Животные"), GameItem("✈️", "Транспорт")),
-    listOf(GameItem("👟", "Обувь"), GameItem("👠", "Обувь"), GameItem("👢", "Обувь"), GameItem("🍕", "Еда")),
-    listOf(GameItem("🌹", "Цветы"), GameItem("🌻", "Цветы"), GameItem("🌷", "Цветы"), GameItem("📱", "Техника")),
-    listOf(GameItem("⚽", "Спорт"), GameItem("🏀", "Спорт"), GameItem("🎾", "Спорт"), GameItem("🎸", "Музыка"))
+    // Набор 1: Фрукты
+    listOf(
+        GameItem(com.vasilisina.azbuka.R.drawable.item_apple, "Фрукты", "Яблоко"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_banana, "Фрукты", "Банан"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_orange, "Фрукты", "Апельсин"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_car, "Транспорт", "Машина")
+    ),
+    // Набор 2: Животные
+    listOf(
+        GameItem(com.vasilisina.azbuka.R.drawable.item_dog, "Животные", "Собака"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_cat, "Животные", "Кошка"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_rabbit, "Животные", "Кролик"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_plane, "Транспорт", "Самолёт")
+    ),
+    // Набор 3: Обувь
+    listOf(
+        GameItem(com.vasilisina.azbuka.R.drawable.item_shoe, "Обувь", "Ботинок"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_heels, "Обувь", "Туфелька"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_boot, "Обувь", "Сапог"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_pizza, "Еда", "Пицца")
+    ),
+    // Набор 4: Цветы
+    listOf(
+        GameItem(com.vasilisina.azbuka.R.drawable.item_flower_rose, "Цветы", "Роза"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_flower_sunflower, "Цветы", "Подсолнух"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_flower_tulip, "Цветы", "Тюльпан"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_phone, "Техника", "Телефон")
+    ),
+    // Набор 5: Спорт
+    listOf(
+        GameItem(com.vasilisina.azbuka.R.drawable.item_ball, "Спорт", "Мяч"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_basketball, "Спорт", "Баскетбол"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_tennis, "Спорт", "Теннис"),
+        GameItem(com.vasilisina.azbuka.R.drawable.item_guitar, "Музыка", "Гитара")
+    )
 )
 
 @Composable
@@ -108,7 +140,10 @@ fun FindOddOneGame(onResult: (correct: Boolean) -> Unit) {
         if (isLocked) {
             Spacer(modifier = Modifier.height(16.dp))
             val correctItem = currentSet[oddIndex]
-            Text(text = if (selectedIndex == oddIndex) "Правильно! Лишний предмет — ${correctItem.emoji} (${correctItem.category})" else "Лишний предмет — ${correctItem.emoji} (${correctItem.category})", style = MaterialTheme.typography.bodyMedium, color = if (selectedIndex == oddIndex) FairyGreen else FairyPink, textAlign = TextAlign.Center)
+            Text(
+                text = if (selectedIndex == oddIndex) "Правильно! Лишний предмет — ${correctItem.name} (${correctItem.category})" else "Лишний предмет — ${correctItem.name} (${correctItem.category})",
+                style = MaterialTheme.typography.bodyMedium, color = if (selectedIndex == oddIndex) FairyGreen else FairyPink, textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -128,12 +163,25 @@ private fun GameItemCell(item: GameItem, isSelected: Boolean, isCorrectItem: Boo
     val borderColor by animateColorAsState(targetValue = when { isSelected -> FairyGold; isLocked && isCorrectItem && !isSelected -> FairyGreen; else -> Color.Transparent }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "Border")
     val elevation = if (isSelected) ItemSelectedElevation else ItemElevation
 
-    // ИСПРАВЛЕНО: Modifier.weight(1f) → Modifier.fillMaxWidth() — weight только для RowScope
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-        Box(modifier = Modifier.size(ItemSize).shadow(elevation, RoundedCornerShape(ItemCornerRadius)).background(backgroundColor, RoundedCornerShape(ItemCornerRadius)).then(if (borderColor != Color.Transparent) Modifier.border(if (isSelected) SelectedBorderWidth else CorrectBorderWidth, borderColor, RoundedCornerShape(ItemCornerRadius)) else Modifier).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = !isLocked) { onClick() }, contentAlignment = Alignment.Center) {
-            Text(text = item.emoji, fontSize = EmojiFontSize, textAlign = TextAlign.Center)
+        Box(
+            modifier = Modifier.size(ItemSize).shadow(elevation, RoundedCornerShape(ItemCornerRadius)).background(backgroundColor, RoundedCornerShape(ItemCornerRadius))
+                .then(if (borderColor != Color.Transparent) Modifier.border(if (isSelected) SelectedBorderWidth else CorrectBorderWidth, borderColor, RoundedCornerShape(ItemCornerRadius)) else Modifier)
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = !isLocked) { onClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(id = item.imageRes),
+                contentDescription = item.name,
+                modifier = Modifier.size(56.dp),
+                contentScale = ContentScale.Fit
+            )
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = item.category, style = MaterialTheme.typography.bodySmall.copy(fontSize = CategoryFontSize, fontWeight = if (isCorrectItem && isLocked) FontWeight.Bold else FontWeight.Normal), color = if (isCorrectItem && isLocked) FairyGreen else DarkText.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+        Text(
+            text = item.name,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = CategoryFontSize, fontWeight = if (isCorrectItem && isLocked) FontWeight.Bold else FontWeight.Normal),
+            color = if (isCorrectItem && isLocked) FairyGreen else DarkText.copy(alpha = 0.7f), textAlign = TextAlign.Center
+        )
     }
 }

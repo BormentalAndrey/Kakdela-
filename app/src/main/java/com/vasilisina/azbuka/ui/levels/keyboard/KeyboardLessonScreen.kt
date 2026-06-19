@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -40,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,7 +52,6 @@ import com.vasilisina.azbuka.ui.theme.DarkText
 import com.vasilisina.azbuka.ui.theme.FairyBlue
 import com.vasilisina.azbuka.ui.theme.FairyGold
 import com.vasilisina.azbuka.ui.theme.FairyGreen
-import com.vasilisina.azbuka.ui.theme.FairyPink
 import com.vasilisina.azbuka.ui.theme.FairyPurple
 import com.vasilisina.azbuka.ui.theme.WhiteBackground
 import kotlinx.coroutines.delay
@@ -63,160 +60,63 @@ import kotlinx.coroutines.delay
 // Константы
 // -------------------------------------------------------------------------
 
-/** Отступ экрана */
 private val ScreenPadding = 16.dp
-
-/** Отступ между персонажем и контентом */
 private val CharacterSpacer = 24.dp
-
-/** Отступ между элементами */
 private val ElementSpacer = 16.dp
-
-/** Отступ перед кнопкой «Далее» */
 private val CompleteButtonSpacer = 32.dp
-
-/** Ширина кнопки «Далее» (доля экрана) */
 private const val COMPLETE_BUTTON_WIDTH_FRACTION = 0.5f
-
-/** Высота кнопки «Далее» */
 private val CompleteButtonHeight = 60.dp
-
-/** Радиус скругления кнопок */
 private val ButtonCornerRadius = 16.dp
-
-/** Размер персонажа */
 private val CharacterSize = 150
-
-/** Количество этапов */
 private const val TOTAL_STAGES = 3
-
-/** Длительность анимации перехода (мс) */
 private const val STAGE_TRANSITION_DURATION_MS = 400
-
-/** Длительность анимации появления звёзд (мс) */
 private const val STAR_DISPLAY_DURATION_MS = 500
-
-/** Задержка между появлением звёзд (мс) */
 private const val STAR_STAGGER_DELAY_MS = 200L
-
-/** Высота прогресс-бара этапов */
 private val StageProgressHeight = 8.dp
-
-/** Радиус скругления прогресс-бара */
-private val StageProgressCornerRadius = 4.dp
-
-/** Размер шрифта звёзд */
 private val StarFontSize = 48.sp
 
 // -------------------------------------------------------------------------
-// Главный экран урока
+// Главный экран
 // -------------------------------------------------------------------------
 
-/**
- * Уровень 3 — «Печать» (клавиатура).
- *
- * Три этапа:
- * 1. **Клавиатура** — найти и нажать указанную букву на клавиатуре из 12 букв
- * 2. **Собери слово** — составить слово из перемешанных букв (МАМА, РУСЬ, МИР)
- * 3. **Свободный ввод** — напечатать любые буквы на клавиатуре
- *
- * Персонаж Василиса помогает ребёнку и радуется успехам.
- *
- * @param level      Номер уровня (по умолчанию 3).
- * @param onComplete Колбэк при завершении уровня (получает количество звёзд 1–3).
- */
 @Composable
 fun KeyboardLessonScreen(
     level: Int = 3,
     onComplete: (stars: Int) -> Unit
 ) {
     val context = LocalContext.current
-
-    // Текущий этап: 0 = клавиши, 1 = собери слово, 2 = свободный ввод, 3 = завершено
     var stage by remember { mutableIntStateOf(0) }
-
-    // Заработанные звёзды
     var earnedStars by remember { mutableIntStateOf(0) }
 
-    // Состояние Василисы
     var vasilisaState by remember {
         mutableStateOf(CharacterState("Василиса", CharacterEmotion.HAPPY))
     }
 
-    // Управление музыкой уровня
     DisposableEffect(Unit) {
-        AudioPlayer.playMusic(context, R.raw.music_level3, loop = true)
-        onDispose {
-            AudioPlayer.stopMusic()
-        }
+        try {
+            AudioPlayer.playMusic(context, R.raw.music_level3, loop = true)
+        } catch (_: Exception) { }
+        onDispose { AudioPlayer.stopMusic() }
     }
 
-    // Прогресс по этапам
     val stageProgress = (stage.coerceIn(0, TOTAL_STAGES)).toFloat() / TOTAL_STAGES
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(WhiteBackground)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(ScreenPadding),
+        modifier = Modifier.fillMaxSize().background(WhiteBackground).statusBarsPadding().navigationBarsPadding().padding(ScreenPadding),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // Персонаж Василиса
-            CharacterView(
-                state = vasilisaState,
-                sizeDp = CharacterSize
-            )
-
+        Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            CharacterView(state = vasilisaState, sizeDp = CharacterSize)
             Spacer(modifier = Modifier.height(CharacterSpacer))
-
-            // Индикатор прогресса по этапам
             StageProgressIndicator(progress = stageProgress, currentStage = stage)
-
             Spacer(modifier = Modifier.height(ElementSpacer))
 
-            // Основной контейнер игры
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 when (stage) {
-                    0 -> KeyboardGame(
-                        onDone = {
-                            stage = 1
-                            earnedStars++
-                        }
-                    )
-
-                    1 -> WordBuilderGame(
-                        onResult = { correct ->
-                            if (correct) earnedStars++
-                            stage = 2
-                        }
-                    )
-
-                    2 -> FreeTypingGame(
-                        onDone = {
-                            // Минимум 1 звезда за прохождение
-                            if (earnedStars == 0) earnedStars = 1
-                            vasilisaState = vasilisaState.copy(emotion = CharacterEmotion.CLAP)
-                            stage = 3
-                        }
-                    )
-
-                    3 -> LevelComplete(
-                        earnedStars = earnedStars,
-                        onComplete = {
-                            GameState.completeLevel(level, earnedStars)
-                            onComplete(earnedStars)
-                        }
-                    )
+                    0 -> KeyboardGame(onDone = { stage = 1; earnedStars++ })
+                    1 -> WordBuilderGame(onResult = { correct -> if (correct) earnedStars++; stage = 2 })
+                    2 -> FreeTypingGame(onDone = { if (earnedStars == 0) earnedStars = 1; vasilisaState = vasilisaState.copy(emotion = CharacterEmotion.CLAP); stage = 3 })
+                    3 -> LevelComplete(earnedStars = earnedStars, onComplete = { GameState.completeLevel(level, earnedStars); onComplete(earnedStars) })
                 }
             }
         }
@@ -224,191 +124,72 @@ fun KeyboardLessonScreen(
 }
 
 // -------------------------------------------------------------------------
-// Индикатор прогресса по этапам
+// Индикатор прогресса
 // -------------------------------------------------------------------------
 
-/**
- * Прогресс-бар, показывающий продвижение по этапам уровня.
- *
- * @param progress     Значение от 0.0 до 1.0.
- * @param currentStage Текущий этап (для подписи).
- */
 @Composable
-private fun StageProgressIndicator(
-    progress: Float,
-    currentStage: Int
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth(0.8f)
-    ) {
-        // Текст: «Этап 1 из 3»
+private fun StageProgressIndicator(progress: Float, currentStage: Int) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth(0.8f)) {
         Text(
-            text = if (currentStage < TOTAL_STAGES) {
-                "Этап ${currentStage + 1} из $TOTAL_STAGES"
-            } else {
-                "Завершено!"
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = DarkText.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center
+            text = if (currentStage < TOTAL_STAGES) "Этап ${currentStage + 1} из $TOTAL_STAGES" else "Завершено!",
+            style = MaterialTheme.typography.bodySmall, color = DarkText.copy(alpha = 0.7f), textAlign = TextAlign.Center
         )
-
         Spacer(modifier = Modifier.height(4.dp))
-
-        // Прогресс-бар
+        // ИСПРАВЛЕНО: Float вместо лямбды
         LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(StageProgressHeight),
-            color = FairyGold,
-            trackColor = FairyBlue.copy(alpha = 0.3f),
+            progress = progress,
+            modifier = Modifier.fillMaxWidth().height(StageProgressHeight),
+            color = FairyGold, trackColor = FairyBlue.copy(alpha = 0.3f)
         )
     }
 }
 
 // -------------------------------------------------------------------------
-// Экран завершения уровня
+// Завершение
 // -------------------------------------------------------------------------
 
-/**
- * Экран завершения уровня с анимированными звёздами.
- *
- * @param earnedStars Количество звёзд (1–3).
- * @param onComplete  Колбэк при нажатии «Далее».
- */
 @Composable
-private fun LevelComplete(
-    earnedStars: Int,
-    onComplete: () -> Unit
-) {
+private fun LevelComplete(earnedStars: Int, onComplete: () -> Unit) {
     var isVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        delay(200)
-        isVisible = true
-    }
+    LaunchedEffect(Unit) { delay(200); isVisible = true }
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = scaleIn(
-            initialScale = 0.5f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium
-            )
-        ) + fadeIn(tween(STAGE_TRANSITION_DURATION_MS))
+        enter = scaleIn(initialScale = 0.5f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + fadeIn(tween(STAGE_TRANSITION_DURATION_MS))
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // Анимированные звёзды
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             StarDisplay(earnedStars = earnedStars)
-
             Spacer(modifier = Modifier.height(ElementSpacer))
-
-            // Текст результата
-            Text(
-                text = when (earnedStars) {
-                    3 -> "Отлично!"
-                    2 -> "Хорошо!"
-                    else -> "Молодец!"
-                },
-                style = MaterialTheme.typography.headlineMedium,
-                color = DarkText,
-                textAlign = TextAlign.Center
-            )
-
+            Text(text = when (earnedStars) { 3 -> "Отлично!"; 2 -> "Хорошо!"; else -> "Молодец!" }, style = MaterialTheme.typography.headlineMedium, color = DarkText, textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "Уровень пройден!",
-                style = MaterialTheme.typography.bodyLarge,
-                color = DarkText.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
-
+            Text(text = "Уровень пройден!", style = MaterialTheme.typography.bodyLarge, color = DarkText.copy(alpha = 0.7f), textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(CompleteButtonSpacer))
-
-            // Кнопка «Далее»
             Button(
-                onClick = {
-                    AudioPlayer.playSFX("click")
-                    onComplete()
-                },
-                modifier = Modifier
-                    .fillMaxWidth(COMPLETE_BUTTON_WIDTH_FRACTION)
-                    .height(CompleteButtonHeight),
+                onClick = { AudioPlayer.playSFX("click"); onComplete() },
+                modifier = Modifier.fillMaxWidth(COMPLETE_BUTTON_WIDTH_FRACTION).height(CompleteButtonHeight),
                 shape = RoundedCornerShape(ButtonCornerRadius),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = FairyGreen,
-                    contentColor = DarkText
-                ),
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 4.dp,
-                    pressedElevation = 8.dp
-                )
-            ) {
-                Text(
-                    text = "Далее →",
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
+                colors = ButtonDefaults.buttonColors(containerColor = FairyGreen, contentColor = DarkText),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)
+            ) { Text("Далее →", style = MaterialTheme.typography.labelLarge) }
         }
     }
 }
 
 // -------------------------------------------------------------------------
-// Отображение звёзд
+// Звёзды
 // -------------------------------------------------------------------------
 
-/**
- * Отображает 3 звезды с каскадной анимацией появления.
- *
- * @param earnedStars Количество заработанных звёзд (0–3).
- */
 @Composable
 private fun StarDisplay(earnedStars: Int) {
     val maxStars = GameState.MAX_STARS_PER_LEVEL
-
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
         repeat(maxStars) { index ->
             val isEarned = index < earnedStars
-
             var starVisible by remember { mutableStateOf(false) }
-
-            LaunchedEffect(Unit) {
-                delay(STAR_STAGGER_DELAY_MS * (index + 1))
-                starVisible = true
-            }
-
-            val starColor by animateColorAsState(
-                targetValue = if (isEarned) FairyGold else Color.LightGray.copy(alpha = 0.3f),
-                animationSpec = tween(STAR_DISPLAY_DURATION_MS),
-                label = "KeyboardStarColor"
-            )
-
-            AnimatedVisibility(
-                visible = starVisible,
-                enter = scaleIn(
-                    initialScale = 0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessHigh
-                    )
-                )
-            ) {
-                Text(
-                    text = if (isEarned) "★" else "☆",
-                    fontSize = StarFontSize,
-                    color = starColor,
-                    textAlign = TextAlign.Center
-                )
+            LaunchedEffect(Unit) { delay(STAR_STAGGER_DELAY_MS * (index + 1)); starVisible = true }
+            val starColor by animateColorAsState(targetValue = if (isEarned) FairyGold else Color.LightGray.copy(alpha = 0.3f), animationSpec = tween(STAR_DISPLAY_DURATION_MS), label = "Star")
+            AnimatedVisibility(visible = starVisible, enter = scaleIn(initialScale = 0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh))) {
+                Text(text = if (isEarned) "★" else "☆", fontSize = StarFontSize, color = starColor, textAlign = TextAlign.Center)
             }
         }
     }

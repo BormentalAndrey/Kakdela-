@@ -51,6 +51,7 @@ import com.vasilisina.azbuka.characters.CharacterEmotion
 import com.vasilisina.azbuka.characters.CharacterState
 import com.vasilisina.azbuka.characters.CharacterView
 import com.vasilisina.azbuka.data.GameState
+import com.vasilisina.azbuka.ui.common.AdaptiveBox
 import com.vasilisina.azbuka.ui.theme.DarkText
 import com.vasilisina.azbuka.ui.theme.FairyBlue
 import com.vasilisina.azbuka.ui.theme.FairyGold
@@ -58,20 +59,20 @@ import com.vasilisina.azbuka.ui.theme.FairyGreen
 import com.vasilisina.azbuka.ui.theme.FairyPurple
 import kotlinx.coroutines.delay
 
-private val ScreenPadding = 16.dp
-private val CharacterSpacer = 24.dp
-private val ElementSpacer = 16.dp
-private val CompleteButtonSpacer = 32.dp
+private val ScreenPadding = 12.dp
+private val CharacterSpacer = 10.dp
+private val ElementSpacer = 8.dp
+private val CompleteButtonSpacer = 24.dp
 private const val COMPLETE_BUTTON_WIDTH_FRACTION = 0.5f
-private val CompleteButtonHeight = 60.dp
-private val ButtonCornerRadius = 16.dp
-private val CharacterSize = 150
+private val CompleteButtonHeight = 50.dp
+private val ButtonCornerRadius = 14.dp
+private val CharacterSize = 110
 private const val TOTAL_STAGES = 3
 private const val STAGE_TRANSITION_DURATION_MS = 400
 private const val STAR_DISPLAY_DURATION_MS = 500
 private const val STAR_STAGGER_DELAY_MS = 200L
-private val StageProgressHeight = 8.dp
-private val StarFontSize = 48.sp
+private val StageProgressHeight = 6.dp
+private val StarFontSize = 40.sp
 
 @Composable
 fun KeyboardLessonScreen(level: Int = 3, onComplete: (stars: Int) -> Unit) {
@@ -87,33 +88,24 @@ fun KeyboardLessonScreen(level: Int = 3, onComplete: (stars: Int) -> Unit) {
 
     val stageProgress = (stage.coerceIn(0, TOTAL_STAGES)).toFloat() / TOTAL_STAGES
 
-    Box(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-        // Фон уровня
-        Image(
-            painter = painterResource(id = R.drawable.bg_level_3_keyboard),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-        // Полупрозрачный слой для читаемости
-        Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.7f)))
+    AdaptiveBox {
+        Box(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            Image(painter = painterResource(id = R.drawable.bg_level_3_keyboard), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.7f)))
 
-        Column(
-            modifier = Modifier.fillMaxSize().padding(ScreenPadding),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            CharacterView(state = vasilisaState, sizeDp = CharacterSize)
-            Spacer(modifier = Modifier.height(CharacterSpacer))
-            StageProgressIndicator(progress = stageProgress, currentStage = stage)
-            Spacer(modifier = Modifier.height(ElementSpacer))
+            Column(modifier = Modifier.fillMaxSize().padding(ScreenPadding), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                CharacterView(state = vasilisaState, sizeDp = CharacterSize)
+                Spacer(modifier = Modifier.height(CharacterSpacer))
+                StageProgressIndicator(progress = stageProgress, currentStage = stage)
+                Spacer(modifier = Modifier.height(ElementSpacer))
 
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                when (stage) {
-                    0 -> KeyboardGame(onDone = { stage = 1; earnedStars++ })
-                    1 -> WordBuilderGame(onResult = { correct -> if (correct) earnedStars++; stage = 2 })
-                    2 -> FreeTypingGame(onDone = { if (earnedStars == 0) earnedStars = 1; vasilisaState = vasilisaState.copy(emotion = CharacterEmotion.CLAP); stage = 3 })
-                    3 -> LevelComplete(earnedStars = earnedStars, onComplete = { GameState.completeLevel(level, earnedStars); onComplete(earnedStars) })
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    when (stage) {
+                        0 -> KeyboardGame(onDone = { stage = 1; earnedStars++ })
+                        1 -> WordBuilderGame(onResult = { correct -> if (correct) earnedStars++; stage = 2 })
+                        2 -> FreeTypingGame(onDone = { if (earnedStars == 0) earnedStars = 1; vasilisaState = vasilisaState.copy(emotion = CharacterEmotion.CLAP); stage = 3 })
+                        3 -> LevelComplete(earnedStars = earnedStars, onComplete = { GameState.completeLevel(level, earnedStars); onComplete(earnedStars) })
+                    }
                 }
             }
         }
@@ -124,7 +116,7 @@ fun KeyboardLessonScreen(level: Int = 3, onComplete: (stars: Int) -> Unit) {
 private fun StageProgressIndicator(progress: Float, currentStage: Int) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth(0.8f)) {
         Text(text = if (currentStage < TOTAL_STAGES) "Этап ${currentStage + 1} из $TOTAL_STAGES" else "Завершено!", style = MaterialTheme.typography.bodySmall, color = DarkText.copy(alpha = 0.7f), textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         LinearProgressIndicator(progress = progress, modifier = Modifier.fillMaxWidth().height(StageProgressHeight), color = FairyGold, trackColor = FairyBlue.copy(alpha = 0.3f))
     }
 }
@@ -138,10 +130,10 @@ private fun LevelComplete(earnedStars: Int, onComplete: () -> Unit) {
             StarDisplay(earnedStars = earnedStars)
             Spacer(modifier = Modifier.height(ElementSpacer))
             Text(text = when (earnedStars) { 3 -> "Отлично!"; 2 -> "Хорошо!"; else -> "Молодец!" }, style = MaterialTheme.typography.headlineMedium, color = DarkText, textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(text = "Уровень пройден!", style = MaterialTheme.typography.bodyLarge, color = DarkText.copy(alpha = 0.7f), textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(CompleteButtonSpacer))
-            Button(onClick = { AudioPlayer.playSFX("click"); onComplete() }, modifier = Modifier.fillMaxWidth(COMPLETE_BUTTON_WIDTH_FRACTION).height(CompleteButtonHeight), shape = RoundedCornerShape(ButtonCornerRadius), colors = ButtonDefaults.buttonColors(containerColor = FairyGreen, contentColor = DarkText), elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)) { Text("Далее →", style = MaterialTheme.typography.labelLarge) }
+            Button(onClick = { AudioPlayer.playSFX("click"); onComplete() }, modifier = Modifier.fillMaxWidth(COMPLETE_BUTTON_WIDTH_FRACTION).height(CompleteButtonHeight), shape = RoundedCornerShape(ButtonCornerRadius), colors = ButtonDefaults.buttonColors(containerColor = FairyGreen, contentColor = DarkText), elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp, pressedElevation = 6.dp)) { Text("Далее →", style = MaterialTheme.typography.labelLarge) }
         }
     }
 }
@@ -149,7 +141,7 @@ private fun LevelComplete(earnedStars: Int, onComplete: () -> Unit) {
 @Composable
 private fun StarDisplay(earnedStars: Int) {
     val maxStars = GameState.MAX_STARS_PER_LEVEL
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         repeat(maxStars) { index ->
             val isEarned = index < earnedStars
             var starVisible by remember { mutableStateOf(false) }

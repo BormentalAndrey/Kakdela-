@@ -22,10 +22,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vasilisina.azbuka.audio.AudioPlayer
 import com.vasilisina.azbuka.ui.theme.DarkText
+import com.vasilisina.azbuka.ui.theme.FairyBlue
 import com.vasilisina.azbuka.ui.theme.FairyGold
 import com.vasilisina.azbuka.ui.theme.FairyGreen
 import com.vasilisina.azbuka.ui.theme.FairyPink
@@ -51,285 +55,108 @@ import com.vasilisina.azbuka.ui.theme.FairyPurple
 import com.vasilisina.azbuka.ui.theme.WhiteBackground
 import kotlinx.coroutines.delay
 
-// -------------------------------------------------------------------------
-// Константы
-// -------------------------------------------------------------------------
-
-private val SlotSize = 80.dp
-private val LetterButtonSize = 70.dp
+private val SlotSize = 64.dp
+private val LetterButtonSize = 72.dp
 private val CornerRadius = 16.dp
 private val SlotBorderWidth = 3.dp
-private val SlotSpacing = 16.dp
-private val LetterButtonSpacing = 12.dp
-private val SlotToLettersSpacer = 40.dp
-private val TitleToSlotsSpacer = 24.dp
-private val GamePadding = 16.dp
-private val ElementSpacing = 8.dp
+private val SlotSpacing = 12.dp
+private val LetterButtonSpacing = 10.dp
+private val SlotToLettersSpacer = 24.dp
+private val TitleToSlotsSpacer = 16.dp
+private val GamePadding = 10.dp
+private val ElementSpacing = 12.dp
 private const val WRONG_ANSWER_RESET_DELAY_MS = 600L
 private const val SUCCESS_DISPLAY_DELAY_MS = 400L
 private const val COLOR_ANIMATION_DURATION_MS = 300
-private val SlotElevation = 6.dp
+private val SlotElevation = 4.dp
 private val LetterButtonElevation = 4.dp
-private val SlotFontSize = 36.sp
-private val LetterButtonFontSize = 32.sp
-
-// -------------------------------------------------------------------------
-// Модель
-// -------------------------------------------------------------------------
+private val SlotFontSize = 32.sp
+private val LetterButtonFontSize = 34.sp
+private const val MAX_LETTERS_PER_ROW = 4
 
 private data class IndexedLetter(val index: Int, val char: Char) {
     override fun toString(): String = char.toString()
 }
 
-// -------------------------------------------------------------------------
-// Игра
-// -------------------------------------------------------------------------
-
 @Composable
-fun SyllableBuilderGame(
-    targetSyllable: String,
-    onComplete: (correct: Boolean) -> Unit
-) {
-    val letters = remember(targetSyllable) {
-        targetSyllable.toList().mapIndexed { index, char ->
-            IndexedLetter(index, char)
-        }.shuffled()
-    }
-
+fun SyllableBuilderGame(targetSyllable: String, onComplete: (correct: Boolean) -> Unit) {
+    val letters = remember(targetSyllable) { targetSyllable.toList().mapIndexed { index, char -> IndexedLetter(index, char) }.shuffled() }
     val usedLetterIndices = remember { mutableStateListOf<Int>() }
-
-    // ИСПРАВЛЕНО: явно указан тип Array<Int?>
-    val slots = remember(targetSyllable) {
-        mutableStateListOf(*Array<Int?>(targetSyllable.length) { null })
-    }
-
+    val slots = remember(targetSyllable) { mutableStateListOf(*Array<Int?>(targetSyllable.length) { null }) }
     var selectedLetterIndex by remember { mutableStateOf<Int?>(null) }
     var isCompleted by remember { mutableStateOf(false) }
     var showSuccess by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
 
-    val currentSyllable = slots.mapNotNull { index ->
-        index?.let { letters[it].char.toString() }
-    }.joinToString("")
+    val currentSyllable = slots.mapNotNull { index -> index?.let { letters[it].char.toString() } }.joinToString("")
 
     LaunchedEffect(currentSyllable) {
         if (isCompleted) return@LaunchedEffect
         if (currentSyllable.length != targetSyllable.length) return@LaunchedEffect
-
-        if (currentSyllable == targetSyllable) {
-            isCompleted = true
-            AudioPlayer.playSFX("correct")
-            showSuccess = true
-            delay(SUCCESS_DISPLAY_DELAY_MS)
-            onComplete(true)
-        } else {
-            AudioPlayer.playSFX("wrong")
-            delay(WRONG_ANSWER_RESET_DELAY_MS)
-            usedLetterIndices.clear()
-            slots.fill(null)
-            selectedLetterIndex = null
-        }
+        if (currentSyllable == targetSyllable) { isCompleted = true; AudioPlayer.playSFX("correct"); showSuccess = true; delay(SUCCESS_DISPLAY_DELAY_MS); onComplete(true) }
+        else { AudioPlayer.playSFX("wrong"); delay(WRONG_ANSWER_RESET_DELAY_MS); usedLetterIndices.clear(); slots.fill(null); selectedLetterIndex = null }
     }
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth().padding(GamePadding)
-    ) {
-        Text(
-            text = "Составь слог «$targetSyllable»",
-            style = MaterialTheme.typography.headlineMedium,
-            color = DarkText,
-            textAlign = TextAlign.Center
-        )
-
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().verticalScroll(scrollState).padding(GamePadding)) {
+        Text(text = "Составь слог «$targetSyllable»", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(TitleToSlotsSpacer))
 
-        SyllableSlots(
-            slots = slots,
-            letters = letters,
-            selectedLetterIndex = selectedLetterIndex,
-            showSuccess = showSuccess,
-            onSlotClick = { slotIndex ->
-                if (isCompleted) return@SyllableSlots
-                val existing = slots[slotIndex]
-                if (existing != null) {
-                    usedLetterIndices.remove(existing)
-                    slots[slotIndex] = null
-                } else if (selectedLetterIndex != null) {
-                    slots[slotIndex] = selectedLetterIndex
-                    usedLetterIndices.add(selectedLetterIndex!!)
-                    selectedLetterIndex = null
-                }
+        // Слоты
+        Row(horizontalArrangement = Arrangement.spacedBy(SlotSpacing), verticalAlignment = Alignment.CenterVertically) {
+            slots.forEachIndexed { index, letterIndex ->
+                val isTargeted = selectedLetterIndex != null && slots[index] == null
+                val borderColor by animateColorAsState(targetValue = when { showSuccess -> FairyGreen; isTargeted -> FairyGold; else -> FairyPurple }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "SlotBorder")
+                SlotView(letter = letterIndex?.let { letters[it].char.toString() }, borderColor = borderColor, isHighlighted = isTargeted, onClick = {
+                    if (isCompleted) return@SlotView
+                    val existing = slots[index]
+                    if (existing != null) { usedLetterIndices.remove(existing); slots[index] = null }
+                    else if (selectedLetterIndex != null) { slots[index] = selectedLetterIndex; usedLetterIndices.add(selectedLetterIndex!!); selectedLetterIndex = null }
+                })
             }
-        )
+        }
 
         Spacer(modifier = Modifier.height(SlotToLettersSpacer))
 
-        LetterButtonsRow(
-            letters = letters,
-            usedLetterIndices = usedLetterIndices,
-            selectedLetterIndex = selectedLetterIndex,
-            onLetterClick = { letterIndex ->
-                if (isCompleted) return@LetterButtonsRow
-                if (selectedLetterIndex == letterIndex) {
-                    selectedLetterIndex = null
-                } else if (!usedLetterIndices.contains(letterIndex)) {
-                    selectedLetterIndex = letterIndex
-                    val firstEmpty = slots.indexOf(null)
-                    if (firstEmpty != -1) {
-                        slots[firstEmpty] = letterIndex
-                        usedLetterIndices.add(letterIndex)
-                        selectedLetterIndex = null
-                    }
+        // Кнопки с буквами — по 4 в ряд
+        val letterRows = letters.chunked(MAX_LETTERS_PER_ROW)
+        letterRows.forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(LetterButtonSpacing)) {
+                row.forEach { indexedLetter ->
+                    val isUsed = usedLetterIndices.contains(indexedLetter.index)
+                    val isSelected = selectedLetterIndex == indexedLetter.index
+                    val bgColor by animateColorAsState(targetValue = when { isUsed -> Color.LightGray; isSelected -> FairyGold; else -> FairyBlue }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "LetterBg")
+                    LetterButton(char = indexedLetter.char, enabled = !isUsed, backgroundColor = bgColor, onClick = {
+                        if (isCompleted) return@LetterButton
+                        if (selectedLetterIndex == indexedLetter.index) selectedLetterIndex = null
+                        else if (!isUsed) {
+                            selectedLetterIndex = indexedLetter.index
+                            val firstEmpty = slots.indexOf(null)
+                            if (firstEmpty != -1) { slots[firstEmpty] = indexedLetter.index; usedLetterIndices.add(indexedLetter.index); selectedLetterIndex = null }
+                        }
+                    })
                 }
             }
-        )
+            Spacer(modifier = Modifier.height(6.dp))
+        }
 
         Spacer(modifier = Modifier.height(ElementSpacing))
 
-        TextButton(
-            onClick = {
-                if (isCompleted) return@TextButton
-                AudioPlayer.playSFX("click")
-                usedLetterIndices.clear()
-                slots.fill(null)
-                selectedLetterIndex = null
-            },
-            enabled = !isCompleted && (usedLetterIndices.isNotEmpty() || selectedLetterIndex != null)
-        ) {
-            Text(
-                text = "Сбросить",
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (isCompleted) Color.Gray else FairyPink
-            )
-        }
-    }
-}
-
-// -------------------------------------------------------------------------
-// Слоты
-// -------------------------------------------------------------------------
-
-@Composable
-private fun SyllableSlots(
-    slots: List<Int?>,
-    letters: List<IndexedLetter>,
-    selectedLetterIndex: Int?,
-    showSuccess: Boolean,
-    onSlotClick: (Int) -> Unit
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(SlotSpacing), verticalAlignment = Alignment.CenterVertically) {
-        slots.forEachIndexed { index, letterIndex ->
-            val isTargeted = selectedLetterIndex != null && slots[index] == null
-            val borderColor by animateColorAsState(
-                targetValue = when {
-                    showSuccess -> FairyGreen
-                    isTargeted -> FairyGold
-                    else -> FairyPurple
-                },
-                animationSpec = tween(COLOR_ANIMATION_DURATION_MS),
-                label = "SlotBorder"
-            )
-            SlotView(
-                letter = letterIndex?.let { letters[it].char.toString() },
-                borderColor = borderColor,
-                isHighlighted = isTargeted,
-                onClick = { onSlotClick(index) }
-            )
-        }
+        Button(onClick = { usedLetterIndices.clear(); slots.fill(null); selectedLetterIndex = null }, enabled = !isCompleted && (usedLetterIndices.isNotEmpty() || selectedLetterIndex != null), modifier = Modifier.height(44.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyPink)) { Text("Сбросить", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
 @Composable
 private fun SlotView(letter: String?, borderColor: Color, isHighlighted: Boolean, onClick: () -> Unit) {
-    val bgColor by animateColorAsState(
-        targetValue = when {
-            letter != null -> WhiteBackground
-            isHighlighted -> FairyGold.copy(alpha = 0.2f)
-            else -> Color.White
-        },
-        animationSpec = tween(COLOR_ANIMATION_DURATION_MS),
-        label = "SlotBg"
-    )
-    Box(
-        modifier = Modifier
-            .size(SlotSize)
-            .shadow(SlotElevation, RoundedCornerShape(CornerRadius))
-            .clip(RoundedCornerShape(CornerRadius))
-            .background(bgColor)
-            .border(SlotBorderWidth, borderColor, RoundedCornerShape(CornerRadius))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        if (letter != null) {
-            Text(
-                text = letter,
-                style = MaterialTheme.typography.headlineLarge.copy(fontSize = SlotFontSize, fontWeight = FontWeight.Bold),
-                color = FairyPurple,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-// -------------------------------------------------------------------------
-// Кнопки букв
-// -------------------------------------------------------------------------
-
-@Composable
-private fun LetterButtonsRow(
-    letters: List<IndexedLetter>,
-    usedLetterIndices: List<Int>,
-    selectedLetterIndex: Int?,
-    onLetterClick: (Int) -> Unit
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(LetterButtonSpacing), verticalAlignment = Alignment.CenterVertically) {
-        letters.forEachIndexed { index, indexedLetter ->
-            val isUsed = usedLetterIndices.contains(index)
-            val isSelected = selectedLetterIndex == index
-            val bgColor by animateColorAsState(
-                targetValue = when {
-                    isUsed -> Color.LightGray
-                    isSelected -> FairyGold
-                    else -> FairyGreen
-                },
-                animationSpec = tween(COLOR_ANIMATION_DURATION_MS),
-                label = "LetterBg"
-            )
-            LetterButton(
-                char = indexedLetter.char,
-                enabled = !isUsed,
-                backgroundColor = bgColor,
-                onClick = { onLetterClick(index) }
-            )
-        }
+    val bgColor by animateColorAsState(targetValue = when { letter != null -> WhiteBackground; isHighlighted -> FairyGold.copy(alpha = 0.2f); else -> Color.White }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "SlotBg")
+    Box(modifier = Modifier.size(SlotSize).shadow(SlotElevation, RoundedCornerShape(CornerRadius)).clip(RoundedCornerShape(CornerRadius)).background(bgColor).border(SlotBorderWidth, borderColor, RoundedCornerShape(CornerRadius)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick), contentAlignment = Alignment.Center) {
+        if (letter != null) Text(text = letter, style = MaterialTheme.typography.headlineLarge.copy(fontSize = SlotFontSize, fontWeight = FontWeight.Bold), color = FairyPurple, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 private fun LetterButton(char: Char, enabled: Boolean, backgroundColor: Color, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(LetterButtonSize)
-            .shadow(if (enabled) LetterButtonElevation else 0.dp, RoundedCornerShape(CornerRadius))
-            .clip(RoundedCornerShape(CornerRadius))
-            .background(backgroundColor)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                enabled = enabled,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = char.toString(),
-            style = MaterialTheme.typography.headlineLarge.copy(fontSize = LetterButtonFontSize, fontWeight = FontWeight.Bold),
-            color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
-            textAlign = TextAlign.Center
-        )
+    Box(modifier = Modifier.size(LetterButtonSize).shadow(if (enabled) LetterButtonElevation else 0.dp, RoundedCornerShape(CornerRadius)).clip(RoundedCornerShape(CornerRadius)).background(backgroundColor).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = enabled, onClick = onClick), contentAlignment = Alignment.Center) {
+        Text(text = char.toString(), style = MaterialTheme.typography.headlineLarge.copy(fontSize = LetterButtonFontSize, fontWeight = FontWeight.Bold), color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f), textAlign = TextAlign.Center)
     }
 }

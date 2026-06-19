@@ -15,6 +15,7 @@ import com.vasilisina.azbuka.data.GameState
 import com.vasilisina.azbuka.ui.menu.MainMenuScreen
 import com.vasilisina.azbuka.ui.map.MapScreen
 import com.vasilisina.azbuka.ui.album.ProgressAlbumScreen
+import com.vasilisina.azbuka.ui.fairytale.FairyTaleScreen
 import com.vasilisina.azbuka.ui.levels.alphabet.AlphabetLessonScreen
 import com.vasilisina.azbuka.ui.levels.counting.CountingLessonScreen
 import com.vasilisina.azbuka.ui.levels.keyboard.KeyboardLessonScreen
@@ -26,6 +27,7 @@ object Routes {
     const val MAIN_MENU = "main_menu"
     const val MAP = "map"
     const val ALBUM = "album"
+    const val FAIRY_TALE = "fairy_tale"
     const val LEVEL_1 = "level_1"  // Алфавит — Москва
     const val LEVEL_2 = "level_2"  // Счёт — Тула
     const val LEVEL_3 = "level_3"  // Печать — Вологда
@@ -49,8 +51,14 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
             MainMenuScreen(
                 onPlay = { navController.navigate(Routes.MAP) { launchSingleTop = true } },
                 onAlbum = { if (GameState.isAlbumUnlocked) navController.navigate(Routes.ALBUM) { launchSingleTop = true } },
+                onFairyTale = { navController.navigate(Routes.FAIRY_TALE) { launchSingleTop = true } },
                 onQuit = { android.os.Process.killProcess(android.os.Process.myPid()) }
             )
+        }
+
+        // Сказка
+        composable(Routes.FAIRY_TALE) {
+            FairyTaleScreen(onBack = { navController.popBackStack() })
         }
 
         // Карта

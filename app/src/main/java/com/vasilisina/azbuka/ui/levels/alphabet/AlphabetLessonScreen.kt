@@ -54,6 +54,7 @@ import com.vasilisina.azbuka.characters.CharacterEmotion
 import com.vasilisina.azbuka.characters.CharacterState
 import com.vasilisina.azbuka.characters.CharacterView
 import com.vasilisina.azbuka.data.GameState
+import com.vasilisina.azbuka.ui.common.AdaptiveBox
 import com.vasilisina.azbuka.ui.theme.DarkText
 import com.vasilisina.azbuka.ui.theme.FairyBlue
 import com.vasilisina.azbuka.ui.theme.FairyGold
@@ -74,20 +75,20 @@ private val AlphabetData = listOf(
 
 private const val TOTAL_LETTERS = 33
 
-private val ScreenPadding = 16.dp
-private val CharacterSpacer = 12.dp
-private val StageSpacer = 12.dp
-private val CompleteButtonSpacer = 24.dp
-private const val COMPLETE_BUTTON_WIDTH_FRACTION = 0.6f
-private val LetterFontSize = 96.sp
+private val ScreenPadding = 12.dp
+private val CharacterSpacer = 8.dp
+private val StageSpacer = 8.dp
+private val CompleteButtonSpacer = 20.dp
+private const val COMPLETE_BUTTON_WIDTH_FRACTION = 0.5f
+private val LetterFontSize = 72.sp
 private const val LETTER_APPEAR_DURATION_MS = 500
 private const val LETTER_SHOW_DELAY_MS = 500L
 private const val LETTER_DISPLAY_DURATION_MS = 2000L
-private val LetterContainerCornerRadius = 24.dp
-private val LetterContainerSize = 160.dp
+private val LetterContainerCornerRadius = 20.dp
+private val LetterContainerSize = 130.dp
 private const val STAGE_TRANSITION_DURATION_MS = 300
-private val ProgressBarHeight = 8.dp
-private val StarFontSize = 48.sp
+private val ProgressBarHeight = 6.dp
+private val StarFontSize = 40.sp
 
 @Composable
 fun AlphabetLessonScreen(level: Int = 1, onComplete: (Int) -> Unit) {
@@ -108,44 +109,35 @@ fun AlphabetLessonScreen(level: Int = 1, onComplete: (Int) -> Unit) {
         onDispose { AudioPlayer.stopMusic() }
     }
 
-    Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-        // Фон уровня
-        Image(
-            painter = painterResource(id = R.drawable.bg_level_1_alphabet),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-        // Полупрозрачный слой для читаемости
-        Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.7f)))
+    AdaptiveBox {
+        Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+            Image(painter = painterResource(id = R.drawable.bg_level_1_alphabet), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.7f)))
 
-        Column(
-            modifier = Modifier.fillMaxSize().padding(ScreenPadding),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            CharacterView(state = vasilisaState, sizeDp = 120)
-            Spacer(modifier = Modifier.height(CharacterSpacer))
-            LetterProgressBar(progress = letterProgress, currentLetter = currentLetterIndex + 1, total = TOTAL_LETTERS)
-            Spacer(modifier = Modifier.height(StageSpacer))
+            Column(modifier = Modifier.fillMaxSize().padding(ScreenPadding), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                CharacterView(state = vasilisaState, sizeDp = 100)
+                Spacer(modifier = Modifier.height(CharacterSpacer))
+                LetterProgressBar(progress = letterProgress, currentLetter = currentLetterIndex + 1, total = TOTAL_LETTERS)
+                Spacer(modifier = Modifier.height(StageSpacer))
 
-            when (stage) {
-                0 -> ShowLetterStage(letter = targetLetter, onDone = { stage = 1; vasilisaState = vasilisaState.idle() })
-                1 -> LetterFinderGame(targetLetter = targetLetter, onComplete = { foundAll ->
-                    if (foundAll) earnedStars++
-                    if (skipWordStage) advanceOrComplete(currentLetterIndex, earnedStars, level, onComplete) { newIndex, _ -> currentLetterIndex = newIndex; stage = 0 }
-                    else stage = 2
-                    vasilisaState = vasilisaState.clap()
-                })
-                2 -> SyllableBuilderGame(targetSyllable = targetWord, onComplete = { correct ->
-                    if (correct) earnedStars++
-                    advanceOrComplete(currentLetterIndex, earnedStars, level, onComplete) { newIndex, _ -> currentLetterIndex = newIndex; stage = 0 }
-                    vasilisaState = vasilisaState.clap()
-                })
-                3 -> LevelComplete(earnedStars = earnedStars, onComplete = {
-                    GameState.completeLevel(level, earnedStars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
-                    onComplete(earnedStars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
-                })
+                when (stage) {
+                    0 -> ShowLetterStage(letter = targetLetter, onDone = { stage = 1; vasilisaState = vasilisaState.idle() })
+                    1 -> LetterFinderGame(targetLetter = targetLetter, onComplete = { foundAll ->
+                        if (foundAll) earnedStars++
+                        if (skipWordStage) advanceOrComplete(currentLetterIndex, earnedStars, level, onComplete) { newIndex, _ -> currentLetterIndex = newIndex; stage = 0 }
+                        else stage = 2
+                        vasilisaState = vasilisaState.clap()
+                    })
+                    2 -> SyllableBuilderGame(targetSyllable = targetWord, onComplete = { correct ->
+                        if (correct) earnedStars++
+                        advanceOrComplete(currentLetterIndex, earnedStars, level, onComplete) { newIndex, _ -> currentLetterIndex = newIndex; stage = 0 }
+                        vasilisaState = vasilisaState.clap()
+                    })
+                    3 -> LevelComplete(earnedStars = earnedStars, onComplete = {
+                        GameState.completeLevel(level, earnedStars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
+                        onComplete(earnedStars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
+                    })
+                }
             }
         }
     }
@@ -162,7 +154,7 @@ private fun advanceOrComplete(currentIndex: Int, stars: Int, level: Int, onCompl
 private fun LetterProgressBar(progress: Float, currentLetter: Int, total: Int) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth(0.8f)) {
         Text(text = "Буква $currentLetter из $total", style = MaterialTheme.typography.bodySmall, color = DarkText, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         androidx.compose.material3.LinearProgressIndicator(progress = progress, modifier = Modifier.fillMaxWidth().height(ProgressBarHeight), color = FairyGold, trackColor = FairyBlue.copy(alpha = 0.3f))
     }
 }
@@ -192,12 +184,12 @@ private fun LevelComplete(earnedStars: Int, onComplete: () -> Unit) {
     AnimatedVisibility(visible = isVisible, enter = scaleIn(initialScale = 0.5f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + fadeIn(tween(400))) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             StarDisplay(earnedStars = earnedStars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(text = "Все буквы пройдены!", style = MaterialTheme.typography.headlineMedium, color = DarkText, textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(text = "Уровень завершён!", style = MaterialTheme.typography.bodyLarge, color = DarkText.copy(alpha = 0.7f), textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(CompleteButtonSpacer))
-            Button(onClick = { AudioPlayer.playSFX("click"); onComplete() }, modifier = Modifier.fillMaxWidth(COMPLETE_BUTTON_WIDTH_FRACTION), shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyGreen, contentColor = DarkText), elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)) { Text("Завершить", style = MaterialTheme.typography.labelLarge) }
+            Button(onClick = { AudioPlayer.playSFX("click"); onComplete() }, modifier = Modifier.fillMaxWidth(COMPLETE_BUTTON_WIDTH_FRACTION).height(50.dp), shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyGreen, contentColor = DarkText), elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp, pressedElevation = 6.dp)) { Text("Завершить", style = MaterialTheme.typography.labelLarge) }
         }
     }
 }
@@ -205,12 +197,12 @@ private fun LevelComplete(earnedStars: Int, onComplete: () -> Unit) {
 @Composable
 private fun StarDisplay(earnedStars: Int) {
     val maxStars = GameState.MAX_STARS_PER_LEVEL
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
         repeat(maxStars) { index ->
             val isEarned = index < earnedStars
             var starVisible by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) { delay(300L * (index + 1)); starVisible = true }
-            val starColor by animateColorAsState(targetValue = if (isEarned) FairyGold else Color.LightGray.copy(alpha = 0.4f), animationSpec = tween(400), label = "Star")
+            LaunchedEffect(Unit) { delay(200L * (index + 1)); starVisible = true }
+            val starColor by animateColorAsState(targetValue = if (isEarned) FairyGold else Color.LightGray.copy(alpha = 0.4f), animationSpec = tween(300), label = "Star")
             AnimatedVisibility(visible = starVisible, enter = scaleIn(initialScale = 0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh))) {
                 Text(text = if (isEarned) "★" else "☆", fontSize = StarFontSize, color = starColor, textAlign = TextAlign.Center)
             }

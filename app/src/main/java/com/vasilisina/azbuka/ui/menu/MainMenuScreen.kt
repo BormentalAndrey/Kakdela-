@@ -17,7 +17,9 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -53,17 +55,17 @@ private const val MENU_ENTRANCE_DURATION_MS = 600
 private const val PULSE_DURATION_MS = 2500
 private const val PULSE_MIN_ALPHA = 0.95f
 private const val PULSE_MAX_ALPHA = 1f
-private const val BUTTON_WIDTH_FRACTION = 0.7f
-private val ButtonHeight = 50.dp
+private const val BUTTON_WIDTH_FRACTION = 0.85f
+private val ButtonHeight = 56.dp
 private val HorizontalPadding = 20.dp
-private val VerticalSpacing = 14.dp
-private val TopSpacerHeight = 16.dp
-private val ButtonCornerRadius = 12.dp
-private val ButtonDefaultElevation = 3.dp
-private val ButtonPressedElevation = 6.dp
-private val ButtonIconSize = 22.dp
-private val TitleFontSize = 26.sp
-private val SubtitleFontSize = 16.sp
+private val VerticalSpacing = 12.dp
+private val TopSpacerHeight = 12.dp
+private val ButtonCornerRadius = 14.dp
+private val ButtonDefaultElevation = 4.dp
+private val ButtonPressedElevation = 8.dp
+private val ButtonIconSize = 26.dp
+private val TitleFontSize = 28.sp
+private val SubtitleFontSize = 17.sp
 
 @Composable
 fun MainMenuScreen(onPlay: () -> Unit, onAlbum: () -> Unit, onFairyTale: () -> Unit, onQuit: () -> Unit) {
@@ -95,14 +97,26 @@ fun MainMenuScreen(onPlay: () -> Unit, onAlbum: () -> Unit, onFairyTale: () -> U
 
 @Composable
 private fun MenuContent(alpha: Float, onPlay: () -> Unit, onAlbum: () -> Unit, onFairyTale: () -> Unit, onQuit: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = HorizontalPadding).alpha(alpha), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(VerticalSpacing)) {
-        Image(painter = painterResource(id = R.drawable.decoration_cloud), contentDescription = null, modifier = Modifier.size(80.dp, 40.dp), contentScale = ContentScale.Fit)
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = HorizontalPadding)
+            .alpha(alpha)
+            .verticalScroll(scrollState),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(VerticalSpacing)
+    ) {
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Image(painter = painterResource(id = R.drawable.decoration_cloud), contentDescription = null, modifier = Modifier.size(90.dp, 45.dp), contentScale = ContentScale.Fit)
 
         Text(text = "Василисина азбука", style = MaterialTheme.typography.headlineLarge.copy(fontSize = TitleFontSize, fontWeight = FontWeight.Bold), color = DarkText, textAlign = TextAlign.Center)
         Text(text = "Путешествие по России", style = MaterialTheme.typography.headlineMedium.copy(fontSize = SubtitleFontSize), color = DarkText, textAlign = TextAlign.Center)
 
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            repeat(5) { Image(painter = painterResource(id = R.drawable.decoration_star_small), contentDescription = null, modifier = Modifier.size(12.dp), contentScale = ContentScale.Fit) }
+            repeat(5) { Image(painter = painterResource(id = R.drawable.decoration_star_small), contentDescription = null, modifier = Modifier.size(14.dp), contentScale = ContentScale.Fit) }
         }
 
         Spacer(modifier = Modifier.height(TopSpacerHeight))
@@ -111,6 +125,8 @@ private fun MenuContent(alpha: Float, onPlay: () -> Unit, onAlbum: () -> Unit, o
         MainMenuButton(text = "Сказка", iconRes = R.drawable.btn_play, color = FairyBlue, onClick = { AudioPlayer.playSFX("click"); onFairyTale() })
         MainMenuButton(text = "Альбом успехов", iconRes = R.drawable.btn_album, color = FairyGreen, onClick = { AudioPlayer.playSFX("click"); onAlbum() })
         MainMenuButton(text = "Выход", iconRes = R.drawable.btn_exit, color = FairyPink, onClick = { AudioPlayer.playSFX("click"); onQuit() })
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
@@ -125,7 +141,7 @@ private fun MainMenuButton(text: String, iconRes: Int, color: Color, onClick: ()
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(ButtonIconSize), contentScale = ContentScale.Fit)
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(10.dp))
             Text(text = text, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, color = Color.White)
         }
     }

@@ -12,7 +12,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,14 +23,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -124,17 +118,23 @@ fun AlphabetLessonScreen(level: Int = 1, onComplete: (Int) -> Unit) {
             Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 when (stage) {
                     0 -> ShowLetterStage(letter = targetLetter, onDone = { stage = 1; vasilisaState = vasilisaState.idle() })
-                    1 -> LetterFinderGame(targetLetter = targetLetter, onComplete = { foundAll ->
-                        if (foundAll) earnedStars++
-                        if (skipWordStage) advanceOrComplete(currentLetterIndex, earnedStars, level, onComplete) { newIndex, _ -> currentLetterIndex = newIndex; stage = 0 }
-                        else stage = 2
-                        vasilisaState = vasilisaState.clap()
-                    })
-                    2 -> SyllableBuilderGame(targetSyllable = targetWord, onComplete = { correct ->
-                        if (correct) earnedStars++
-                        advanceOrComplete(currentLetterIndex, earnedStars, level, onComplete) { newIndex, _ -> currentLetterIndex = newIndex; stage = 0 }
-                        vasilisaState = vasilisaState.clap()
-                    })
+                    1 -> {
+                        @Suppress("DEPRECATION")
+                        LetterFinderGame(targetLetter = targetLetter, onComplete = { foundAll ->
+                            if (foundAll) earnedStars++
+                            if (skipWordStage) advanceOrComplete(currentLetterIndex, earnedStars, level, onComplete) { newIndex, _ -> currentLetterIndex = newIndex; stage = 0 }
+                            else stage = 2
+                            vasilisaState = vasilisaState.clap()
+                        })
+                    }
+                    2 -> {
+                        @Suppress("DEPRECATION")
+                        SyllableBuilderGame(targetSyllable = targetWord, onComplete = { correct ->
+                            if (correct) earnedStars++
+                            advanceOrComplete(currentLetterIndex, earnedStars, level, onComplete) { newIndex, _ -> currentLetterIndex = newIndex; stage = 0 }
+                            vasilisaState = vasilisaState.clap()
+                        })
+                    }
                     3 -> LevelComplete(earnedStars = earnedStars, onComplete = {
                         GameState.completeLevel(level, earnedStars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
                         onComplete(earnedStars.coerceAtMost(GameState.MAX_STARS_PER_LEVEL))
@@ -179,79 +179,6 @@ fun ShowLetterStage(letter: String, onDone: () -> Unit) {
         }
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = "Послушай, как она звучит!", style = MaterialTheme.typography.bodyLarge, color = DarkText, textAlign = TextAlign.Center)
-    }
-}
-
-@Composable
-fun LetterFinderGame(targetLetter: String, onComplete: (Boolean) -> Unit) {
-    val options = remember(targetLetter) {
-        val others = AlphabetData.map { it.first }.filter { it != targetLetter }.shuffled().take(3)
-        (others + targetLetter).shuffled()
-    }
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text(text = "Найди букву $targetLetter", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.size(200.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(options) { letter ->
-                Card(
-                    modifier = Modifier.size(85.dp).clickable {
-                        if (letter == targetLetter) { AudioPlayer.playSFX("correct"); onComplete(true) }
-                        else { AudioPlayer.playSFX("wrong") }
-                    },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = FairyBlue.copy(alpha = 0.1f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-                ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = letter, fontSize = 40.sp, fontWeight = FontWeight.Bold, color = FairyPurple)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SyllableBuilderGame(targetSyllable: String, onComplete: (Boolean) -> Unit) {
-    val letters = remember(targetSyllable) { targetSyllable.toList().map { it.toString() } }
-    var shuffledLetters by remember(targetSyllable) { mutableStateOf(letters.shuffled().mapIndexed { index, char -> Pair(index, char) }) }
-    var currentWord by remember(targetSyllable) { mutableStateOf(emptyList<Pair<Int, String>>()) }
-
-    LaunchedEffect(currentWord) {
-        if (currentWord.size == letters.size) {
-            val formedWord = currentWord.joinToString("") { it.second }
-            if (formedWord == targetSyllable) { AudioPlayer.playSFX("correct"); delay(500); onComplete(true) }
-            else { AudioPlayer.playSFX("wrong"); delay(500); currentWord = emptyList() }
-        }
-    }
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text(text = "Собери слово", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            letters.forEachIndexed { index, _ ->
-                val charToShow = currentWord.getOrNull(index)?.second ?: ""
-                Box(modifier = Modifier.size(44.dp).clip(RoundedCornerShape(8.dp)).background(FairyBlue.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
-                    Text(text = charToShow, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = DarkText)
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            shuffledLetters.forEach { item ->
-                val isSelected = currentWord.contains(item)
-                Box(modifier = Modifier.size(54.dp).clip(RoundedCornerShape(10.dp)).background(if (isSelected) Color.LightGray else FairyGold).clickable(enabled = !isSelected) { currentWord = currentWord + item }, contentAlignment = Alignment.Center) {
-                    Text(text = item.second, fontSize = 30.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.Gray else Color.White)
-                }
-            }
-        }
     }
 }
 

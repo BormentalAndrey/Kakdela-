@@ -47,7 +47,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vasilisina.azbuka.audio.AudioPlayer
 import com.vasilisina.azbuka.ui.theme.DarkText
-import com.vasilisina.azbuka.ui.theme.FairyBlue
 import com.vasilisina.azbuka.ui.theme.FairyGold
 import com.vasilisina.azbuka.ui.theme.FairyGreen
 import com.vasilisina.azbuka.ui.theme.FairyPink
@@ -59,20 +58,19 @@ private val SlotSize = 64.dp
 private val LetterButtonSize = 72.dp
 private val CornerRadius = 16.dp
 private val SlotBorderWidth = 3.dp
-private val SlotSpacing = 12.dp
+private val SlotSpacing = 10.dp
 private val LetterButtonSpacing = 10.dp
-private val SlotToLettersSpacer = 24.dp
-private val TitleToSlotsSpacer = 16.dp
+private val SlotToLettersSpacer = 20.dp
+private val TitleToSlotsSpacer = 12.dp
 private val GamePadding = 10.dp
-private val ElementSpacing = 12.dp
+private val ElementSpacing = 10.dp
 private const val WRONG_ANSWER_RESET_DELAY_MS = 600L
 private const val SUCCESS_DISPLAY_DELAY_MS = 400L
 private const val COLOR_ANIMATION_DURATION_MS = 300
 private val SlotElevation = 4.dp
 private val LetterButtonElevation = 4.dp
-private val SlotFontSize = 32.sp
-private val LetterButtonFontSize = 34.sp
-private const val MAX_LETTERS_PER_ROW = 4
+private val SlotFontSize = 30.sp
+private val LetterButtonFontSize = 32.sp
 
 private data class IndexedLetter(val index: Int, val char: Char) {
     override fun toString(): String = char.toString()
@@ -117,26 +115,22 @@ fun SyllableBuilderGame(targetSyllable: String, onComplete: (correct: Boolean) -
 
         Spacer(modifier = Modifier.height(SlotToLettersSpacer))
 
-        // Кнопки с буквами — по 4 в ряд
-        val letterRows = letters.chunked(MAX_LETTERS_PER_ROW)
-        letterRows.forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(LetterButtonSpacing)) {
-                row.forEach { indexedLetter ->
-                    val isUsed = usedLetterIndices.contains(indexedLetter.index)
-                    val isSelected = selectedLetterIndex == indexedLetter.index
-                    val bgColor by animateColorAsState(targetValue = when { isUsed -> Color.LightGray; isSelected -> FairyGold; else -> FairyBlue }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "LetterBg")
-                    LetterButton(char = indexedLetter.char, enabled = !isUsed, backgroundColor = bgColor, onClick = {
-                        if (isCompleted) return@LetterButton
-                        if (selectedLetterIndex == indexedLetter.index) selectedLetterIndex = null
-                        else if (!isUsed) {
-                            selectedLetterIndex = indexedLetter.index
-                            val firstEmpty = slots.indexOf(null)
-                            if (firstEmpty != -1) { slots[firstEmpty] = indexedLetter.index; usedLetterIndices.add(indexedLetter.index); selectedLetterIndex = null }
-                        }
-                    })
-                }
+        // Кнопки с буквами — зелёные, квадратные
+        Row(horizontalArrangement = Arrangement.spacedBy(LetterButtonSpacing), verticalAlignment = Alignment.CenterVertically) {
+            letters.forEach { indexedLetter ->
+                val isUsed = usedLetterIndices.contains(indexedLetter.index)
+                val isSelected = selectedLetterIndex == indexedLetter.index
+                val bgColor by animateColorAsState(targetValue = when { isUsed -> Color.LightGray; isSelected -> FairyGold; else -> FairyGreen }, animationSpec = tween(COLOR_ANIMATION_DURATION_MS), label = "LetterBg")
+                LetterButton(char = indexedLetter.char, enabled = !isUsed, backgroundColor = bgColor, onClick = {
+                    if (isCompleted) return@LetterButton
+                    if (selectedLetterIndex == indexedLetter.index) selectedLetterIndex = null
+                    else if (!isUsed) {
+                        selectedLetterIndex = indexedLetter.index
+                        val firstEmpty = slots.indexOf(null)
+                        if (firstEmpty != -1) { slots[firstEmpty] = indexedLetter.index; usedLetterIndices.add(indexedLetter.index); selectedLetterIndex = null }
+                    }
+                })
             }
-            Spacer(modifier = Modifier.height(6.dp))
         }
 
         Spacer(modifier = Modifier.height(ElementSpacing))
@@ -156,7 +150,10 @@ private fun SlotView(letter: String?, borderColor: Color, isHighlighted: Boolean
 
 @Composable
 private fun LetterButton(char: Char, enabled: Boolean, backgroundColor: Color, onClick: () -> Unit) {
-    Box(modifier = Modifier.size(LetterButtonSize).shadow(if (enabled) LetterButtonElevation else 0.dp, RoundedCornerShape(CornerRadius)).clip(RoundedCornerShape(CornerRadius)).background(backgroundColor).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = enabled, onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = Modifier.size(LetterButtonSize).shadow(if (enabled) LetterButtonElevation else 0.dp, RoundedCornerShape(CornerRadius)).clip(RoundedCornerShape(CornerRadius)).background(backgroundColor).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
         Text(text = char.toString(), style = MaterialTheme.typography.headlineLarge.copy(fontSize = LetterButtonFontSize, fontWeight = FontWeight.Bold), color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f), textAlign = TextAlign.Center)
     }
 }

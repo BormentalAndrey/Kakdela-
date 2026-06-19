@@ -82,6 +82,9 @@ fun LetterFinderGame(targetLetter: String, onComplete: (Boolean) -> Unit) {
         result.shuffled()
     }
 
+    // ✅ Каждой букве — уникальный индекс
+    val symbolsWithIndex = remember(symbols) { symbols.mapIndexed { i, ch -> i to ch } }
+
     val clickedStates = remember { mutableStateMapOf<Int, Boolean>() }
     var foundCount by remember { mutableIntStateOf(0) }
     var isCompleted by remember { mutableStateOf(false) }
@@ -93,19 +96,24 @@ fun LetterFinderGame(targetLetter: String, onComplete: (Boolean) -> Unit) {
         FoundCounter(found = foundCount, total = TARGET_LETTER_COUNT, remaining = remainingCount)
         Spacer(modifier = Modifier.height(GridTopSpacer))
 
-        val rows = symbols.chunked(CELLS_PER_ROW)
+        val rows = symbolsWithIndex.chunked(CELLS_PER_ROW)
         rows.forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(CellHorizontalSpacing), modifier = Modifier.padding(vertical = CellVerticalSpacing)) {
-                row.forEach { letter ->
-                    val cellIndex = symbols.indexOf(letter)
+                row.forEach { (cellIndex, letter) ->
                     val appearDelay = cellIndex * CELL_STAGGER_DELAY_MS
-                    AnimatedLetterCell(letter = letter, targetLetter = targetLetter, isClicked = clickedStates.containsKey(cellIndex), isCorrect = clickedStates[cellIndex] ?: false, appearDelay = appearDelay, onTap = { correct ->
-                        if (!isCompleted && !clickedStates.containsKey(cellIndex)) {
-                            clickedStates[cellIndex] = correct
-                            if (correct) { foundCount++; AudioPlayer.playSFX("correct"); if (foundCount >= TARGET_LETTER_COUNT) { isCompleted = true; onComplete(true) } }
-                            else { AudioPlayer.playSFX("wrong") }
+                    AnimatedLetterCell(
+                        letter = letter, targetLetter = targetLetter,
+                        isClicked = clickedStates.containsKey(cellIndex),
+                        isCorrect = clickedStates[cellIndex] ?: false,
+                        appearDelay = appearDelay,
+                        onTap = { correct ->
+                            if (!isCompleted && !clickedStates.containsKey(cellIndex)) {
+                                clickedStates[cellIndex] = correct
+                                if (correct) { foundCount++; AudioPlayer.playSFX("correct"); if (foundCount >= TARGET_LETTER_COUNT) { isCompleted = true; onComplete(true) } }
+                                else { AudioPlayer.playSFX("wrong") }
+                            }
                         }
-                    })
+                    )
                 }
             }
         }

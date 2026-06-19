@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Сохранить в app/src/main/res/values/colors.xml -->
+<resources>
+    <color name="white_background">#FFFFF8F0</color>
+    <color name="fairy_purple">#FFDDA0DD</color>
+    <color name="fairy_gold">#FFFFD700</color>
+</resources>

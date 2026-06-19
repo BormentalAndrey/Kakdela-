@@ -23,7 +23,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,46 +57,42 @@ import com.vasilisina.azbuka.ui.theme.FairyPink
 import com.vasilisina.azbuka.ui.theme.FairyPurple
 import kotlinx.coroutines.delay
 
-private val PuzzlePieces = listOf(
-    R.drawable.puzzle_piece_1,
-    R.drawable.puzzle_piece_2,
-    R.drawable.puzzle_piece_3,
-    R.drawable.puzzle_piece_4
-)
+private val PuzzlePieces = listOf(R.drawable.puzzle_piece_1, R.drawable.puzzle_piece_2, R.drawable.puzzle_piece_3, R.drawable.puzzle_piece_4)
 private const val PUZZLE_SIZE = 4
-private val GridCellSize = 90.dp
-private val PieceButtonSize = 70.dp
-private val CornerRadius = 12.dp
+private val GridCellSize = 100.dp
+private val PieceButtonSize = 100.dp
+private val CornerRadius = 14.dp
 private val GridBorderWidth = 2.dp
 private val ErrorBorderWidth = 3.dp
 private val SuccessBorderWidth = 3.dp
 private val GridSpacing = 8.dp
-private val PieceSpacing = 12.dp
-private val GamePadding = 16.dp
-private val GridTopSpacer = 24.dp
-private val PiecesTopSpacer = 32.dp
-private val HintSpacer = 8.dp
+private val PieceSpacing = 10.dp
+private val GamePadding = 10.dp
+private val GridTopSpacer = 16.dp
+private val PiecesTopSpacer = 20.dp
+private val HintSpacer = 6.dp
 private const val COLOR_ANIMATION_DURATION_MS = 300
 private const val ERROR_RESET_DELAY_MS = 1000L
 private const val SUCCESS_DELAY_MS = 1000L
-private const val ELEMENT_STAGGER_DELAY_MS = 100L
-private const val ELEMENT_APPEAR_DURATION_MS = 350
+private const val ELEMENT_STAGGER_DELAY_MS = 80L
+private const val ELEMENT_APPEAR_DURATION_MS = 300
 private val GridCellElevation = 4.dp
 private val PieceButtonElevation = 4.dp
 private val PieceSelectedElevation = 8.dp
-private val HintFontSize = 16.sp
+private val HintFontSize = 14.sp
 private val ErrorBackgroundColor = Color(0xFFFFEBEE)
+private val ImageInsideSize = 85.dp
 
 @Composable
 fun PuzzleGameScreen(onResult: (correct: Boolean) -> Unit) {
     val shuffledPieces = remember { PuzzlePieces.shuffled() }
     val grid = remember { mutableStateListOf<Int?>(null, null, null, null) }
-
     var selectedPieceIndex by remember { mutableIntStateOf(-1) }
     var isError by remember { mutableStateOf(false) }
     var isSuccess by remember { mutableStateOf(false) }
     var isLocked by remember { mutableStateOf(false) }
     var showElements by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
 
     val isComplete = grid.all { it != null }
     val isCorrect = grid.toList() == PuzzlePieces
@@ -102,50 +100,35 @@ fun PuzzleGameScreen(onResult: (correct: Boolean) -> Unit) {
     LaunchedEffect(isComplete) {
         if (!isComplete || isLocked) return@LaunchedEffect
         isLocked = true
-        if (isCorrect) {
-            isSuccess = true
-            AudioPlayer.playSFX("correct")
-            delay(SUCCESS_DELAY_MS)
-            onResult(true)
-        } else {
-            isError = true
-            AudioPlayer.playSFX("wrong")
-            delay(ERROR_RESET_DELAY_MS)
-            grid.fill(null)
-            selectedPieceIndex = -1
-            isError = false
-            isLocked = false
-        }
+        if (isCorrect) { isSuccess = true; AudioPlayer.playSFX("correct"); delay(SUCCESS_DELAY_MS); onResult(true) }
+        else { isError = true; AudioPlayer.playSFX("wrong"); delay(ERROR_RESET_DELAY_MS); grid.fill(null); selectedPieceIndex = -1; isError = false; isLocked = false }
     }
 
     LaunchedEffect(Unit) { showElements = true }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(GamePadding)) {
-        Text(text = "Собери пазл", style = MaterialTheme.typography.headlineMedium, color = DarkText, textAlign = TextAlign.Center)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().verticalScroll(scrollState).padding(GamePadding)) {
+        Text(text = "Собери пазл", style = MaterialTheme.typography.headlineSmall, color = DarkText, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(HintSpacer))
-        Text(
-            text = if (isSuccess) "Правильно! Пазл собран." else if (selectedPieceIndex >= 0) "Выбери ячейку для кусочка" else "Выбери кусочек и помести его в ячейку",
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = HintFontSize),
-            color = when { isSuccess -> FairyGreen; isError -> FairyPink; else -> DarkText.copy(alpha = 0.6f) },
-            textAlign = TextAlign.Center
-        )
+        Text(text = if (isSuccess) "Правильно!" else if (selectedPieceIndex >= 0) "Выбери ячейку" else "Выбери кусочек и помести его в ячейку", style = MaterialTheme.typography.bodySmall.copy(fontSize = HintFontSize), color = when { isSuccess -> FairyGreen; isError -> FairyPink; else -> DarkText.copy(alpha = 0.6f) }, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(GridTopSpacer))
 
-        PuzzleGrid(grid = grid, isError = isError, isSuccess = isSuccess, showElements = showElements, onCellClick = { cellIndex ->
-            if (isLocked) return@PuzzleGrid
-            if (selectedPieceIndex >= 0 && grid[cellIndex] == null) {
-                grid[cellIndex] = shuffledPieces[selectedPieceIndex]
-                selectedPieceIndex = -1
-            }
-        })
+        // Основной ряд: сетка слева + кусочки справа
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Сетка 2×2 слева
+            PuzzleGrid(grid = grid, isError = isError, isSuccess = isSuccess, showElements = showElements, onCellClick = { cellIndex ->
+                if (isLocked) return@PuzzleGrid
+                if (selectedPieceIndex >= 0 && grid[cellIndex] == null) { grid[cellIndex] = shuffledPieces[selectedPieceIndex]; selectedPieceIndex = -1 }
+            })
 
-        Spacer(modifier = Modifier.height(PiecesTopSpacer))
+            // Кусочки справа — столбиком
+            PuzzlePiecesColumn(pieces = shuffledPieces, usedPieces = grid.filterNotNull(), selectedIndex = selectedPieceIndex, showElements = showElements, onPieceClick = { pieceIndex ->
+                if (isLocked) return@PuzzlePiecesColumn
+                val isUsed = grid.contains(shuffledPieces[pieceIndex])
+                if (!isUsed) selectedPieceIndex = if (selectedPieceIndex == pieceIndex) -1 else pieceIndex
+            })
+        }
 
-        PuzzlePiecesRow(pieces = shuffledPieces, usedPieces = grid.filterNotNull(), selectedIndex = selectedPieceIndex, showElements = showElements, onPieceClick = { pieceIndex ->
-            if (isLocked) return@PuzzlePiecesRow
-            val isUsed = grid.contains(shuffledPieces[pieceIndex])
-            if (!isUsed) selectedPieceIndex = if (selectedPieceIndex == pieceIndex) -1 else pieceIndex
-        })
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
@@ -168,7 +151,7 @@ private fun PuzzleGrid(grid: List<Int?>, isError: Boolean, isSuccess: Boolean, s
 private fun AnimatedGridCell(pieceRes: Int?, isError: Boolean, isSuccess: Boolean, appearDelay: Long, showElements: Boolean, onClick: () -> Unit) {
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(showElements) { if (showElements) { delay(appearDelay); isVisible = true } }
-    AnimatedVisibility(visible = isVisible, enter = scaleIn(initialScale = 0.3f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + fadeIn(animationSpec = tween(ELEMENT_APPEAR_DURATION_MS))) {
+    AnimatedVisibility(visible = isVisible, enter = scaleIn(initialScale = 0.3f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(animationSpec = tween(ELEMENT_APPEAR_DURATION_MS))) {
         GridCell(pieceRes = pieceRes, isError = isError, isSuccess = isSuccess, onClick = onClick)
     }
 }
@@ -180,15 +163,14 @@ private fun GridCell(pieceRes: Int?, isError: Boolean, isSuccess: Boolean, onCli
     val borderWidth = when { isError -> ErrorBorderWidth; isSuccess && pieceRes != null -> SuccessBorderWidth; else -> GridBorderWidth }
 
     Box(modifier = Modifier.size(GridCellSize).shadow(GridCellElevation, RoundedCornerShape(CornerRadius)).clip(RoundedCornerShape(CornerRadius)).background(backgroundColor).border(borderWidth, borderColor, RoundedCornerShape(CornerRadius)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick), contentAlignment = Alignment.Center) {
-        if (pieceRes != null) {
-            Image(painter = painterResource(id = pieceRes), contentDescription = "Кусочек пазла", modifier = Modifier.size(80.dp), contentScale = ContentScale.Fit)
-        }
+        if (pieceRes != null) Image(painter = painterResource(id = pieceRes), contentDescription = "Кусочек", modifier = Modifier.size(ImageInsideSize), contentScale = ContentScale.Fit)
     }
 }
 
+// Кусочки пазла столбиком справа
 @Composable
-private fun PuzzlePiecesRow(pieces: List<Int>, usedPieces: List<Int>, selectedIndex: Int, showElements: Boolean, onPieceClick: (Int) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(PieceSpacing), verticalAlignment = Alignment.CenterVertically) {
+private fun PuzzlePiecesColumn(pieces: List<Int>, usedPieces: List<Int>, selectedIndex: Int, showElements: Boolean, onPieceClick: (Int) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(PieceSpacing), horizontalAlignment = Alignment.CenterHorizontally) {
         pieces.forEachIndexed { index, pieceRes ->
             val appearDelay = ELEMENT_STAGGER_DELAY_MS * (PUZZLE_SIZE + index)
             AnimatedPuzzlePiece(pieceRes = pieceRes, isUsed = usedPieces.contains(pieceRes), isSelected = selectedIndex == index, appearDelay = appearDelay, showElements = showElements, onClick = { onPieceClick(index) })
@@ -200,7 +182,7 @@ private fun PuzzlePiecesRow(pieces: List<Int>, usedPieces: List<Int>, selectedIn
 private fun AnimatedPuzzlePiece(pieceRes: Int, isUsed: Boolean, isSelected: Boolean, appearDelay: Long, showElements: Boolean, onClick: () -> Unit) {
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(showElements) { if (showElements) { delay(appearDelay); isVisible = true } }
-    AnimatedVisibility(visible = isVisible, enter = scaleIn(initialScale = 0.3f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + fadeIn(animationSpec = tween(ELEMENT_APPEAR_DURATION_MS))) {
+    AnimatedVisibility(visible = isVisible, enter = scaleIn(initialScale = 0.3f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(animationSpec = tween(ELEMENT_APPEAR_DURATION_MS))) {
         PuzzlePiece(pieceRes = pieceRes, isUsed = isUsed, isSelected = isSelected, onClick = onClick)
     }
 }
@@ -211,6 +193,6 @@ private fun PuzzlePiece(pieceRes: Int, isUsed: Boolean, isSelected: Boolean, onC
     val elevation = when { isUsed -> 0.dp; isSelected -> PieceSelectedElevation; else -> PieceButtonElevation }
 
     Box(modifier = Modifier.size(PieceButtonSize).shadow(elevation, RoundedCornerShape(CornerRadius)).clip(RoundedCornerShape(CornerRadius)).background(backgroundColor).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = !isUsed, onClick = onClick), contentAlignment = Alignment.Center) {
-        Image(painter = painterResource(id = pieceRes), contentDescription = "Кусочек пазла", modifier = Modifier.size(60.dp), contentScale = ContentScale.Fit)
+        Image(painter = painterResource(id = pieceRes), contentDescription = "Кусочек", modifier = Modifier.size(ImageInsideSize), contentScale = ContentScale.Fit)
     }
 }

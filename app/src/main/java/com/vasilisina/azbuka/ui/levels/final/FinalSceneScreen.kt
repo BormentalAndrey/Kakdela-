@@ -13,6 +13,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,7 +53,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -76,11 +79,12 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
-// -------------------------------------------------------------------------
-// Константы
-// -------------------------------------------------------------------------
-
-private val TableItems = listOf("🍽️", "🥛", "🍴", "🧃")
+private val TableItems = listOf(
+    R.drawable.item_plate,
+    R.drawable.item_glass,
+    R.drawable.item_fork,
+    R.drawable.item_juice
+)
 private const val TABLE_SLOTS_COUNT = 4
 private val TableSlotSize = 80.dp
 private val TableItemSize = 70.dp
@@ -96,24 +100,16 @@ private const val FINAL_MAX_STARS = 3
 private const val APPEAR_DURATION_MS = 400
 private const val STAGGER_DELAY_MS = 80L
 private val FinalTitleFontSize = 48.sp
-private val TableItemFontSize = 32.sp
 private val AlbumStarFontSize = 24.sp
 private val SlotElevation = 4.dp
 private val ItemElevation = 4.dp
 private val ItemSelectedElevation = 8.dp
-
-// -------------------------------------------------------------------------
-// Модель
-// -------------------------------------------------------------------------
+private val ItemImageSize = 48.dp
 
 private data class FireworkParticle(
     val color: Color, val x: Float, val y: Float,
     val targetX: Float, val targetY: Float, val delay: Long, val size: Float
 )
-
-// -------------------------------------------------------------------------
-// Главный экран
-// -------------------------------------------------------------------------
 
 @Composable
 fun FinalSceneScreen(level: Int = 5, onComplete: (stars: Int) -> Unit) {
@@ -124,11 +120,8 @@ fun FinalSceneScreen(level: Int = 5, onComplete: (stars: Int) -> Unit) {
     var vasilisaState by remember { mutableStateOf(CharacterState("Василиса", CharacterEmotion.HAPPY)) }
     var kuzyaState by remember { mutableStateOf(CharacterState("Кузя", CharacterEmotion.HAPPY)) }
 
-    // ИСПРАВЛЕНО: try-catch на случай отсутствия файла
     DisposableEffect(Unit) {
-        try {
-            AudioPlayer.playMusic(context, R.raw.music_final, loop = true)
-        } catch (_: Exception) { }
+        try { AudioPlayer.playMusic(context, R.raw.music_final, loop = true) } catch (_: Exception) { }
         onDispose { AudioPlayer.stopMusic() }
     }
 
@@ -141,14 +134,10 @@ fun FinalSceneScreen(level: Int = 5, onComplete: (stars: Int) -> Unit) {
     }
 }
 
-// -------------------------------------------------------------------------
-// Сервировка
-// -------------------------------------------------------------------------
-
 @Composable
 private fun TableSettingGame(onComplete: () -> Unit) {
     val items = remember { TableItems }
-    val slots = remember { mutableStateListOf<String?>(null, null, null, null) }
+    val slots = remember { mutableStateListOf<Int?>(null, null, null, null) }
     var selectedItemIndex by remember { mutableIntStateOf(-1) }
     val allPlaced = slots.all { it != null }
 
@@ -164,11 +153,13 @@ private fun TableSettingGame(onComplete: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(TableSlotSpacing)) {
-            slots.forEachIndexed { index, value ->
+            slots.forEachIndexed { index, itemRes ->
                 var isVisible by remember { mutableStateOf(false) }
                 LaunchedEffect(showElements) { if (showElements) { delay(STAGGER_DELAY_MS * index); isVisible = true } }
                 AnimatedVisibility(visible = isVisible, enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(tween(APPEAR_DURATION_MS))) {
-                    TableSlot(item = value, isHighlighted = selectedItemIndex >= 0 && value == null, onClick = { if (selectedItemIndex >= 0 && value == null) { slots[index] = items[selectedItemIndex]; selectedItemIndex = -1 } })
+                    TableSlot(itemRes = itemRes, isHighlighted = selectedItemIndex >= 0 && itemRes == null, onClick = {
+                        if (selectedItemIndex >= 0 && itemRes == null) { slots[index] = items[selectedItemIndex]; selectedItemIndex = -1 }
+                    })
                 }
             }
         }
@@ -176,13 +167,13 @@ private fun TableSettingGame(onComplete: () -> Unit) {
         Spacer(modifier = Modifier.height(ItemsTopSpacer))
 
         Row(horizontalArrangement = Arrangement.spacedBy(TableItemSpacing)) {
-            items.forEachIndexed { index, item ->
-                val isUsed = slots.contains(item)
+            items.forEachIndexed { index, itemRes ->
+                val isUsed = slots.contains(itemRes)
                 val isSelected = selectedItemIndex == index
                 var isVisible by remember { mutableStateOf(false) }
                 LaunchedEffect(showElements) { if (showElements) { delay(STAGGER_DELAY_MS * (TABLE_SLOTS_COUNT + index)); isVisible = true } }
                 AnimatedVisibility(visible = isVisible, enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(tween(APPEAR_DURATION_MS))) {
-                    TableItem(item = item, isUsed = isUsed, isSelected = isSelected, onClick = { if (!isUsed) selectedItemIndex = if (isSelected) -1 else index })
+                    TableItem(itemRes = itemRes, isUsed = isUsed, isSelected = isSelected, onClick = { if (!isUsed) selectedItemIndex = if (isSelected) -1 else index })
                 }
             }
         }
@@ -190,27 +181,24 @@ private fun TableSettingGame(onComplete: () -> Unit) {
 }
 
 @Composable
-private fun TableSlot(item: String?, isHighlighted: Boolean, onClick: () -> Unit) {
-    val bgColor by animateColorAsState(targetValue = when { item != null -> FairyGold.copy(alpha = 0.2f); isHighlighted -> FairyGold.copy(alpha = 0.3f); else -> FairyBlue.copy(alpha = 0.3f) }, animationSpec = tween(300), label = "SlotBg")
-    val borderColor by animateColorAsState(targetValue = when { item != null -> FairyGold; isHighlighted -> FairyPurple; else -> FairyBlue }, animationSpec = tween(300), label = "SlotBorder")
+private fun TableSlot(itemRes: Int?, isHighlighted: Boolean, onClick: () -> Unit) {
+    val bgColor by animateColorAsState(targetValue = when { itemRes != null -> FairyGold.copy(alpha = 0.2f); isHighlighted -> FairyGold.copy(alpha = 0.3f); else -> FairyBlue.copy(alpha = 0.3f) }, animationSpec = tween(300), label = "SlotBg")
+    val borderColor by animateColorAsState(targetValue = when { itemRes != null -> FairyGold; isHighlighted -> FairyPurple; else -> FairyBlue }, animationSpec = tween(300), label = "SlotBorder")
     Box(modifier = Modifier.size(TableSlotSize).shadow(SlotElevation, RoundedCornerShape(TableCornerRadius)).clip(RoundedCornerShape(TableCornerRadius)).background(bgColor).border(2.dp, borderColor, RoundedCornerShape(TableCornerRadius)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick), contentAlignment = Alignment.Center) {
-        Text(text = item ?: "", fontSize = TableItemFontSize, textAlign = TextAlign.Center)
+        if (itemRes != null) {
+            Image(painter = painterResource(id = itemRes), contentDescription = "Предмет", modifier = Modifier.size(ItemImageSize), contentScale = ContentScale.Fit)
+        }
     }
 }
 
 @Composable
-private fun TableItem(item: String, isUsed: Boolean, isSelected: Boolean, onClick: () -> Unit) {
+private fun TableItem(itemRes: Int, isUsed: Boolean, isSelected: Boolean, onClick: () -> Unit) {
     val bgColor by animateColorAsState(targetValue = when { isUsed -> Color.LightGray.copy(alpha = 0.4f); isSelected -> FairyGold; else -> FairyGreen }, animationSpec = tween(300), label = "ItemBg")
-    val textColor by animateColorAsState(targetValue = when { isUsed -> Color.White.copy(alpha = 0.3f); isSelected -> DarkText; else -> Color.White }, animationSpec = tween(300), label = "ItemText")
     val elevation = when { isUsed -> 0.dp; isSelected -> ItemSelectedElevation; else -> ItemElevation }
     Box(modifier = Modifier.size(TableItemSize).shadow(elevation, RoundedCornerShape(TableCornerRadius)).clip(RoundedCornerShape(TableCornerRadius)).background(bgColor).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = !isUsed, onClick = onClick), contentAlignment = Alignment.Center) {
-        Text(text = item, fontSize = TableItemFontSize, fontWeight = FontWeight.Bold, color = textColor, textAlign = TextAlign.Center)
+        Image(painter = painterResource(id = itemRes), contentDescription = "Предмет", modifier = Modifier.size(ItemImageSize), contentScale = ContentScale.Fit)
     }
 }
-
-// -------------------------------------------------------------------------
-// Салют
-// -------------------------------------------------------------------------
 
 @Composable
 private fun FireworksAnimation(onDone: () -> Unit) {
@@ -219,34 +207,21 @@ private fun FireworksAnimation(onDone: () -> Unit) {
     val particles = remember {
         val colors = listOf(FairyGold, FairyPink, FairyBlue, FairyGreen, FairyPurple)
         List(FIREWORKS_PARTICLE_COUNT) {
-            val angle = Random.nextFloat() * 360f
-            val distance = Random.nextFloat() * 150f + 100f
-            val rad = Math.toRadians(angle.toDouble())
+            val angle = Random.nextFloat() * 360f; val distance = Random.nextFloat() * 150f + 100f; val rad = Math.toRadians(angle.toDouble())
             FireworkParticle(color = colors.random(), x = 0f, y = 0f, targetX = (cos(rad) * distance).toFloat(), targetY = (sin(rad) * distance).toFloat(), delay = Random.nextLong(500), size = Random.nextFloat() * 12f + 6f)
         }
     }
 
     val titleScale by animateFloatAsState(targetValue = if (showFireworks) 1f else 0f, animationSpec = tween(1000), label = "TitleScale")
-    // ИСПРАВЛЕНО: добавлен импорт RepeatMode
     val pulseScale by animateFloatAsState(targetValue = if (showFireworks) 1.05f else 0f, animationSpec = infiniteRepeatable(animation = tween(800), repeatMode = RepeatMode.Reverse), label = "TitlePulse")
 
     LaunchedEffect(Unit) { showFireworks = true; delay(FIREWORKS_DURATION_MS); onDone() }
 
     Box(modifier = Modifier.fillMaxSize().background(Brush.radialGradient(colors = listOf(FairyPurple.copy(alpha = 0.3f), FairyBlue.copy(alpha = 0.15f), WhiteBackground))), contentAlignment = Alignment.Center) {
         particles.forEach { particle ->
-            var particleVisible by remember { mutableStateOf(false) }
-            var currentX by remember { mutableStateOf(0f) }
-            var currentY by remember { mutableStateOf(0f) }
-            LaunchedEffect(showFireworks) {
-                if (showFireworks) {
-                    delay(particle.delay); particleVisible = true
-                    val steps = 20; for (i in 1..steps) { currentX = particle.targetX * (i.toFloat() / steps); currentY = particle.targetY * (i.toFloat() / steps); delay(16) }
-                    delay(500); particleVisible = false
-                }
-            }
-            AnimatedVisibility(visible = particleVisible, enter = fadeIn(tween(200)), exit = fadeOut(tween(500))) {
-                Box(modifier = Modifier.offset { IntOffset(currentX.toInt(), currentY.toInt()) }.size(particle.size.dp).background(particle.color, CircleShape))
-            }
+            var particleVisible by remember { mutableStateOf(false) }; var currentX by remember { mutableStateOf(0f) }; var currentY by remember { mutableStateOf(0f) }
+            LaunchedEffect(showFireworks) { if (showFireworks) { delay(particle.delay); particleVisible = true; val steps = 20; for (i in 1..steps) { currentX = particle.targetX * (i.toFloat() / steps); currentY = particle.targetY * (i.toFloat() / steps); delay(16) }; delay(500); particleVisible = false } }
+            AnimatedVisibility(visible = particleVisible, enter = fadeIn(tween(200)), exit = fadeOut(tween(500))) { Box(modifier = Modifier.offset { IntOffset(currentX.toInt(), currentY.toInt()) }.size(particle.size.dp).background(particle.color, CircleShape)) }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.graphicsLayer { scaleX = titleScale * pulseScale; scaleY = titleScale * pulseScale }) {
             Text(text = "🎉", fontSize = 64.sp, textAlign = TextAlign.Center)
@@ -257,10 +232,6 @@ private fun FireworksAnimation(onDone: () -> Unit) {
         }
     }
 }
-
-// -------------------------------------------------------------------------
-// Альбом
-// -------------------------------------------------------------------------
 
 @Composable
 private fun FinalAlbum(vasilisaState: CharacterState, kuzyaState: CharacterState, onDone: () -> Unit) {
@@ -278,8 +249,7 @@ private fun FinalAlbum(vasilisaState: CharacterState, kuzyaState: CharacterState
         Spacer(modifier = Modifier.height(24.dp))
 
         (1..GameState.MAX_LEVELS).forEach { level ->
-            val stars = GameState.getStars(level)
-            val isUnlocked = GameState.isLevelUnlocked(level)
+            val stars = GameState.getStars(level); val isUnlocked = GameState.isLevelUnlocked(level)
             var rowVisible by remember { mutableStateOf(false) }
             LaunchedEffect(showContent) { if (showContent) { delay(STAGGER_DELAY_MS * level + 600); rowVisible = true } }
             AnimatedVisibility(visible = rowVisible, enter = fadeIn(tween(400)) + scaleIn(initialScale = 0.8f, animationSpec = spring())) {

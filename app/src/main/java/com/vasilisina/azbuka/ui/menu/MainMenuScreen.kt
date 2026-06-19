@@ -75,10 +75,10 @@ private const val PULSE_DURATION_MS = 2500
 private const val PULSE_MIN_ALPHA = 0.95f
 private const val PULSE_MAX_ALPHA = 1f
 private const val BUTTON_WIDTH_FRACTION = 0.8f
-private val ButtonHeight = 72.dp
+private val ButtonHeight = 64.dp
 private val HorizontalPadding = 32.dp
-private val VerticalSpacing = 24.dp
-private val TopSpacerHeight = 40.dp
+private val VerticalSpacing = 20.dp
+private val TopSpacerHeight = 30.dp
 private val ButtonCornerRadius = 16.dp
 private val ButtonDefaultElevation = 6.dp
 private val ButtonPressedElevation = 10.dp
@@ -88,7 +88,7 @@ private val TitleFontSize = 36.sp
 private val SubtitleFontSize = 22.sp
 
 @Composable
-fun MainMenuScreen(onPlay: () -> Unit, onAlbum: () -> Unit, onQuit: () -> Unit) {
+fun MainMenuScreen(onPlay: () -> Unit, onAlbum: () -> Unit, onFairyTale: () -> Unit, onQuit: () -> Unit) {
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         try { AudioPlayer.playMusic(context = context, resId = R.raw.music_main, loop = true) } catch (_: Exception) { }
@@ -104,32 +104,28 @@ fun MainMenuScreen(onPlay: () -> Unit, onAlbum: () -> Unit, onQuit: () -> Unit) 
 
     Box(modifier = Modifier.fillMaxSize().background(backgroundBrush).statusBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing).navigationBarsPadding(), contentAlignment = Alignment.Center) {
         AnimatedVisibility(visible = isMenuVisible, enter = fadeIn(tween(MENU_ENTRANCE_DURATION_MS)) + slideInVertically(initialOffsetY = { it / 4 }, animationSpec = tween(MENU_ENTRANCE_DURATION_MS)) + scaleIn(initialScale = 0.9f, animationSpec = tween(MENU_ENTRANCE_DURATION_MS)), exit = fadeOut(tween(300))) {
-            MenuContent(alpha = pulseAlpha, onPlay = onPlay, onAlbum = onAlbum, onQuit = onQuit)
+            MenuContent(alpha = pulseAlpha, onPlay = onPlay, onAlbum = onAlbum, onFairyTale = onFairyTale, onQuit = onQuit)
         }
     }
 }
 
 @Composable
-private fun MenuContent(alpha: Float, onPlay: () -> Unit, onAlbum: () -> Unit, onQuit: () -> Unit) {
+private fun MenuContent(alpha: Float, onPlay: () -> Unit, onAlbum: () -> Unit, onFairyTale: () -> Unit, onQuit: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = HorizontalPadding).alpha(alpha), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(VerticalSpacing)) {
-        // Декоративное облачко
         Image(painter = painterResource(id = R.drawable.decoration_cloud), contentDescription = null, modifier = Modifier.size(120.dp, 60.dp), contentScale = ContentScale.Fit)
 
         Text(text = "Василисина азбука", style = MaterialTheme.typography.headlineLarge.copy(fontSize = TitleFontSize, fontWeight = FontWeight.Bold), color = DarkText, textAlign = TextAlign.Center)
         Text(text = "Путешествие по России", style = MaterialTheme.typography.headlineMedium.copy(fontSize = SubtitleFontSize), color = DarkText, textAlign = TextAlign.Center)
 
-        // Звёздочки-декор
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             repeat(5) { Image(painter = painterResource(id = R.drawable.decoration_star_small), contentDescription = null, modifier = Modifier.size(16.dp), contentScale = ContentScale.Fit) }
         }
 
         Spacer(modifier = Modifier.height(TopSpacerHeight))
 
-        // Кнопка «Играть» с иконкой
         MainMenuButton(text = "Играть", iconRes = R.drawable.btn_play, color = FairyPurple, onClick = { AudioPlayer.playSFX("click"); onPlay() })
-        // Кнопка «Альбом»
+        MainMenuButton(text = "Сказка", iconRes = R.drawable.btn_play, color = FairyBlue, onClick = { AudioPlayer.playSFX("click"); onFairyTale() })
         MainMenuButton(text = "Альбом успехов", iconRes = R.drawable.btn_album, color = FairyGreen, onClick = { AudioPlayer.playSFX("click"); onAlbum() })
-        // Кнопка «Выход»
         MainMenuButton(text = "Выход", iconRes = R.drawable.btn_exit, color = FairyPink, onClick = { AudioPlayer.playSFX("click"); onQuit() })
     }
 }
@@ -140,7 +136,7 @@ private fun MainMenuButton(text: String, iconRes: Int, color: Color, onClick: ()
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(BUTTON_WIDTH_FRACTION).height(ButtonHeight),
         shape = RoundedCornerShape(ButtonCornerRadius),
-        colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White, disabledContainerColor = color.copy(alpha = 0.4f), disabledContentColor = Color.White.copy(alpha = 0.4f)),
+        colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = ButtonDefaultElevation, pressedElevation = ButtonPressedElevation, focusedElevation = ButtonFocusedElevation, hoveredElevation = ButtonFocusedElevation, disabledElevation = 0.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {

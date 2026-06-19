@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vasilisina.azbuka.R
 import com.vasilisina.azbuka.audio.AudioPlayer
+import com.vasilisina.azbuka.ui.common.AdaptiveBox
 import com.vasilisina.azbuka.ui.theme.DarkText
 import com.vasilisina.azbuka.ui.theme.FairyBlue
 import com.vasilisina.azbuka.ui.theme.FairyGold
@@ -74,18 +75,18 @@ private const val MENU_ENTRANCE_DURATION_MS = 600
 private const val PULSE_DURATION_MS = 2500
 private const val PULSE_MIN_ALPHA = 0.95f
 private const val PULSE_MAX_ALPHA = 1f
-private const val BUTTON_WIDTH_FRACTION = 0.8f
-private val ButtonHeight = 64.dp
-private val HorizontalPadding = 32.dp
-private val VerticalSpacing = 20.dp
-private val TopSpacerHeight = 30.dp
-private val ButtonCornerRadius = 16.dp
-private val ButtonDefaultElevation = 6.dp
-private val ButtonPressedElevation = 10.dp
-private val ButtonFocusedElevation = 8.dp
-private val ButtonIconSize = 28.dp
-private val TitleFontSize = 36.sp
-private val SubtitleFontSize = 22.sp
+private const val BUTTON_WIDTH_FRACTION = 0.75f
+private val ButtonHeight = 56.dp
+private val HorizontalPadding = 24.dp
+private val VerticalSpacing = 16.dp
+private val TopSpacerHeight = 20.dp
+private val ButtonCornerRadius = 14.dp
+private val ButtonDefaultElevation = 4.dp
+private val ButtonPressedElevation = 8.dp
+private val ButtonFocusedElevation = 6.dp
+private val ButtonIconSize = 24.dp
+private val TitleFontSize = 30.sp
+private val SubtitleFontSize = 18.sp
 
 @Composable
 fun MainMenuScreen(onPlay: () -> Unit, onAlbum: () -> Unit, onFairyTale: () -> Unit, onQuit: () -> Unit) {
@@ -102,9 +103,11 @@ fun MainMenuScreen(onPlay: () -> Unit, onAlbum: () -> Unit, onFairyTale: () -> U
     val pulseAlpha by infiniteTransition.animateFloat(initialValue = PULSE_MIN_ALPHA, targetValue = PULSE_MAX_ALPHA, animationSpec = infiniteRepeatable(animation = tween(PULSE_DURATION_MS), repeatMode = RepeatMode.Reverse), label = "Alpha")
     val backgroundBrush = Brush.verticalGradient(colors = listOf(backgroundColor, WhiteBackground))
 
-    Box(modifier = Modifier.fillMaxSize().background(backgroundBrush).statusBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing).navigationBarsPadding(), contentAlignment = Alignment.Center) {
-        AnimatedVisibility(visible = isMenuVisible, enter = fadeIn(tween(MENU_ENTRANCE_DURATION_MS)) + slideInVertically(initialOffsetY = { it / 4 }, animationSpec = tween(MENU_ENTRANCE_DURATION_MS)) + scaleIn(initialScale = 0.9f, animationSpec = tween(MENU_ENTRANCE_DURATION_MS)), exit = fadeOut(tween(300))) {
-            MenuContent(alpha = pulseAlpha, onPlay = onPlay, onAlbum = onAlbum, onFairyTale = onFairyTale, onQuit = onQuit)
+    AdaptiveBox {
+        Box(modifier = Modifier.fillMaxSize().background(backgroundBrush).statusBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing).navigationBarsPadding(), contentAlignment = Alignment.Center) {
+            AnimatedVisibility(visible = isMenuVisible, enter = fadeIn(tween(MENU_ENTRANCE_DURATION_MS)) + slideInVertically(initialOffsetY = { it / 4 }, animationSpec = tween(MENU_ENTRANCE_DURATION_MS)) + scaleIn(initialScale = 0.9f, animationSpec = tween(MENU_ENTRANCE_DURATION_MS)), exit = fadeOut(tween(300))) {
+                MenuContent(alpha = pulseAlpha, onPlay = onPlay, onAlbum = onAlbum, onFairyTale = onFairyTale, onQuit = onQuit)
+            }
         }
     }
 }
@@ -112,13 +115,13 @@ fun MainMenuScreen(onPlay: () -> Unit, onAlbum: () -> Unit, onFairyTale: () -> U
 @Composable
 private fun MenuContent(alpha: Float, onPlay: () -> Unit, onAlbum: () -> Unit, onFairyTale: () -> Unit, onQuit: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = HorizontalPadding).alpha(alpha), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(VerticalSpacing)) {
-        Image(painter = painterResource(id = R.drawable.decoration_cloud), contentDescription = null, modifier = Modifier.size(120.dp, 60.dp), contentScale = ContentScale.Fit)
+        Image(painter = painterResource(id = R.drawable.decoration_cloud), contentDescription = null, modifier = Modifier.size(100.dp, 50.dp), contentScale = ContentScale.Fit)
 
         Text(text = "Василисина азбука", style = MaterialTheme.typography.headlineLarge.copy(fontSize = TitleFontSize, fontWeight = FontWeight.Bold), color = DarkText, textAlign = TextAlign.Center)
         Text(text = "Путешествие по России", style = MaterialTheme.typography.headlineMedium.copy(fontSize = SubtitleFontSize), color = DarkText, textAlign = TextAlign.Center)
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            repeat(5) { Image(painter = painterResource(id = R.drawable.decoration_star_small), contentDescription = null, modifier = Modifier.size(16.dp), contentScale = ContentScale.Fit) }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            repeat(5) { Image(painter = painterResource(id = R.drawable.decoration_star_small), contentDescription = null, modifier = Modifier.size(14.dp), contentScale = ContentScale.Fit) }
         }
 
         Spacer(modifier = Modifier.height(TopSpacerHeight))
@@ -141,7 +144,7 @@ private fun MainMenuButton(text: String, iconRes: Int, color: Color, onClick: ()
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(ButtonIconSize), contentScale = ContentScale.Fit)
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(10.dp))
             Text(text = text, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, color = Color.White)
         }
     }

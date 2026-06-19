@@ -4,12 +4,7 @@ package com.vasilisina.azbuka.ui.levels.final
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -18,34 +13,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,14 +39,7 @@ import com.vasilisina.azbuka.characters.CharacterEmotion
 import com.vasilisina.azbuka.characters.CharacterState
 import com.vasilisina.azbuka.characters.CharacterView
 import com.vasilisina.azbuka.data.GameState
-import com.vasilisina.azbuka.ui.common.AdaptiveBox
-import com.vasilisina.azbuka.ui.theme.DarkText
-import com.vasilisina.azbuka.ui.theme.FairyBlue
-import com.vasilisina.azbuka.ui.theme.FairyGold
-import com.vasilisina.azbuka.ui.theme.FairyGreen
-import com.vasilisina.azbuka.ui.theme.FairyPink
-import com.vasilisina.azbuka.ui.theme.FairyPurple
-import com.vasilisina.azbuka.ui.theme.WhiteBackground
+import com.vasilisina.azbuka.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlin.math.cos
 import kotlin.math.sin
@@ -82,25 +47,25 @@ import kotlin.random.Random
 
 private val TableItems = listOf(R.drawable.item_plate, R.drawable.item_glass, R.drawable.item_fork, R.drawable.item_juice)
 private const val TABLE_SLOTS_COUNT = 4
-private val TableSlotSize = 70.dp
-private val TableItemSize = 60.dp
+private val TableSlotSize = 64.dp
+private val TableItemSize = 56.dp
 private val TableCornerRadius = 10.dp
-private val TableSlotSpacing = 12.dp
-private val TableItemSpacing = 10.dp
-private val ItemsTopSpacer = 24.dp
-private val TitleTopSpacer = 20.dp
+private val TableSlotSpacing = 10.dp
+private val TableItemSpacing = 8.dp
+private val ItemsTopSpacer = 20.dp
+private val TitleTopSpacer = 16.dp
 private const val TABLE_COMPLETE_DELAY_MS = 800L
-private const val FIREWORKS_DURATION_MS = 4000L
-private const val FIREWORKS_PARTICLE_COUNT = 25
+private const val FIREWORKS_DURATION_MS = 3500L
+private const val FIREWORKS_PARTICLE_COUNT = 20
 private const val FINAL_MAX_STARS = 3
 private const val APPEAR_DURATION_MS = 400
-private const val STAGGER_DELAY_MS = 60L
-private val FinalTitleFontSize = 36.sp
-private val AlbumStarFontSize = 20.sp
+private const val STAGGER_DELAY_MS = 50L
+private val FinalTitleFontSize = 32.sp
+private val AlbumStarFontSize = 18.sp
 private val SlotElevation = 3.dp
 private val ItemElevation = 3.dp
-private val ItemSelectedElevation = 6.dp
-private val ItemImageSize = 40.dp
+private val ItemSelectedElevation = 5.dp
+private val ItemImageSize = 36.dp
 
 private data class FireworkParticle(
     val color: Color, val x: Float, val y: Float,
@@ -120,16 +85,14 @@ fun FinalSceneScreen(level: Int = 6, onComplete: (stars: Int) -> Unit) {
         onDispose { AudioPlayer.stopMusic() }
     }
 
-    AdaptiveBox {
-        Box(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            Image(painter = painterResource(id = R.drawable.bg_level_5_final), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.6f)))
+    Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+        Image(painter = painterResource(id = R.drawable.bg_level_5_final), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.6f)))
 
-            when (stage) {
-                0 -> TableSettingGame(onComplete = { vasilisaState = vasilisaState.copy(emotion = CharacterEmotion.CLAP); kuzyaState = kuzyaState.copy(emotion = CharacterEmotion.CLAP); stage = 1 })
-                1 -> FireworksAnimation(onDone = { stage = 2 })
-                2 -> FinalAlbum(vasilisaState = vasilisaState, kuzyaState = kuzyaState, onDone = { GameState.completeLevel(level, earnedStars); onComplete(earnedStars) })
-            }
+        when (stage) {
+            0 -> TableSettingGame(onComplete = { vasilisaState = vasilisaState.clap(); kuzyaState = kuzyaState.clap(); stage = 1 })
+            1 -> FireworksAnimation(onDone = { stage = 2 })
+            2 -> FinalAlbum(vasilisaState = vasilisaState, kuzyaState = kuzyaState, onDone = { GameState.completeLevel(level, earnedStars); onComplete(earnedStars) })
         }
     }
 }
@@ -144,11 +107,11 @@ private fun TableSettingGame(onComplete: () -> Unit) {
     var showElements by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { showElements = true }
 
-    Column(modifier = Modifier.fillMaxSize().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+    Column(modifier = Modifier.fillMaxSize().padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Text(text = "Накрой на стол!", style = MaterialTheme.typography.headlineLarge.copy(fontSize = FinalTitleFontSize, fontWeight = FontWeight.Bold), color = DarkText, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(TitleTopSpacer))
         Text(text = if (allPlaced) "Отлично! Стол накрыт." else if (selectedItemIndex >= 0) "Выбери место для предмета" else "Выбери предмет и помести его на стол", style = MaterialTheme.typography.bodyMedium, color = DarkText.copy(alpha = 0.6f), textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(TableSlotSpacing)) {
             slots.forEachIndexed { index, itemRes ->
@@ -198,20 +161,20 @@ private fun FireworksAnimation(onDone: () -> Unit) {
     var showFireworks by remember { mutableStateOf(false) }
     val particles = remember {
         val colors = listOf(FairyGold, FairyPink, FairyBlue, FairyGreen, FairyPurple)
-        List(FIREWORKS_PARTICLE_COUNT) { val angle = Random.nextFloat() * 360f; val distance = Random.nextFloat() * 120f + 80f; val rad = Math.toRadians(angle.toDouble()); FireworkParticle(color = colors.random(), x = 0f, y = 0f, targetX = (cos(rad) * distance).toFloat(), targetY = (sin(rad) * distance).toFloat(), delay = Random.nextLong(400), size = Random.nextFloat() * 10f + 4f) }
+        List(FIREWORKS_PARTICLE_COUNT) { val angle = Random.nextFloat() * 360f; val distance = Random.nextFloat() * 100f + 60f; val rad = Math.toRadians(angle.toDouble()); FireworkParticle(colors.random(), 0f, 0f, (cos(rad) * distance).toFloat(), (sin(rad) * distance).toFloat(), Random.nextLong(300), Random.nextFloat() * 8f + 3f) }
     }
     val titleScale by animateFloatAsState(targetValue = if (showFireworks) 1f else 0f, animationSpec = tween(800), label = "TitleScale")
     val pulseScale by animateFloatAsState(targetValue = if (showFireworks) 1.05f else 0f, animationSpec = infiniteRepeatable(animation = tween(600), repeatMode = RepeatMode.Reverse), label = "TitlePulse")
     LaunchedEffect(Unit) { showFireworks = true; delay(FIREWORKS_DURATION_MS); onDone() }
 
-    Box(modifier = Modifier.fillMaxSize().background(Brush.radialGradient(colors = listOf(FairyPurple.copy(alpha = 0.3f), FairyBlue.copy(alpha = 0.15f), Color.Transparent))), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.fillMaxSize().background(Brush.radialGradient(colors = listOf(FairyPurple.copy(alpha = 0.3f), Color.Transparent))), contentAlignment = Alignment.Center) {
         particles.forEach { particle ->
             var particleVisible by remember { mutableStateOf(false) }; var currentX by remember { mutableStateOf(0f) }; var currentY by remember { mutableStateOf(0f) }
             LaunchedEffect(showFireworks) { if (showFireworks) { delay(particle.delay); particleVisible = true; val steps = 15; for (i in 1..steps) { currentX = particle.targetX * (i.toFloat() / steps); currentY = particle.targetY * (i.toFloat() / steps); delay(16) }; delay(400); particleVisible = false } }
             AnimatedVisibility(visible = particleVisible, enter = fadeIn(tween(150)), exit = fadeOut(tween(400))) { Box(modifier = Modifier.offset { IntOffset(currentX.toInt(), currentY.toInt()) }.size(particle.size.dp).background(particle.color, CircleShape)) }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.graphicsLayer { scaleX = titleScale * pulseScale; scaleY = titleScale * pulseScale }) {
-            Text(text = "🎉", fontSize = 48.sp, textAlign = TextAlign.Center)
+            Text(text = "🎉", fontSize = 40.sp, textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(6.dp))
             Text(text = "ПОЗДРАВЛЯЕМ!", style = MaterialTheme.typography.headlineLarge.copy(fontSize = FinalTitleFontSize, fontWeight = FontWeight.Bold), color = FairyGold, textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(6.dp))
@@ -225,15 +188,15 @@ private fun FinalAlbum(vasilisaState: CharacterState, kuzyaState: CharacterState
     var showContent by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { showContent = true }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+    Column(modifier = Modifier.fillMaxSize().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         AnimatedVisibility(visible = showContent, enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(tween(500))) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { CharacterView(state = vasilisaState, sizeDp = 100); CharacterView(state = kuzyaState, sizeDp = 100) }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { CharacterView(state = vasilisaState, sizeDp = 90); CharacterView(state = kuzyaState, sizeDp = 90) }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         AnimatedVisibility(visible = showContent, enter = fadeIn(tween(600, delayMillis = 300))) {
             Text(text = "Твой альбом успехов", style = MaterialTheme.typography.headlineMedium, color = DarkText, textAlign = TextAlign.Center)
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         (1..GameState.MAX_LEVELS).forEach { level ->
             val stars = GameState.getStars(level); val isUnlocked = GameState.isLevelUnlocked(level)
@@ -247,9 +210,9 @@ private fun FinalAlbum(vasilisaState: CharacterState, kuzyaState: CharacterState
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         AnimatedVisibility(visible = showContent, enter = fadeIn(tween(400, delayMillis = 800))) {
-            Button(onClick = { AudioPlayer.playSFX("click"); onDone() }, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(50.dp), shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyPurple, contentColor = Color.White), elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp, pressedElevation = 6.dp)) { Text("Завершить", style = MaterialTheme.typography.labelLarge, maxLines = 1) }
+            Button(onClick = { AudioPlayer.playSFX("click"); onDone() }, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(48.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = FairyPurple, contentColor = Color.White), elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp, pressedElevation = 6.dp)) { Text("Завершить", style = MaterialTheme.typography.labelLarge, maxLines = 1) }
         }
     }
 }

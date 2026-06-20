@@ -8,7 +8,6 @@ import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonSyntaxException
-import com.google.gson.reflect.TypeToken
 
 object ProgressManager {
 
@@ -24,14 +23,17 @@ object ProgressManager {
 
     @Volatile
     private var prefs: SharedPreferences? = null
-
     @Volatile
     private var initialized: Boolean = false
-
     private val lock = Any()
 
-    // ✅ Явный TypeToken с сохранением generic-сигнатуры
-    private val savedProgressType = object : TypeToken<SavedProgress>() {}.type
+    // ✅ Вспомогательный класс со String-ключами (без TypeToken)
+    private data class SavedProgressJson(
+        val currentLevel: Int = 1,
+        val stars: Map<String, Int> = emptyMap(),
+        val isAlbumUnlocked: Boolean = false,
+        val dataVersion: Int = CURRENT_DATA_VERSION
+    )
 
     data class SavedProgress(
         val currentLevel: Int = 1,
@@ -58,8 +60,8 @@ object ProgressManager {
         ensureInitialized()
         val p = prefs ?: return
         try {
-            val json = gson.toJson(gameStateToProgress(gameState))
-            p.edit().putString(KEY_PROGRESS, json).putInt(KEY_DATA_VERSION, CURRENT_DATA_VERSION).apply()
+            p.edit().putString(KEY_PROGRESS, gson.toJson(gameStateToProgress(gameState)))
+                .putInt(KEY_DATA_VERSION, CURRENT_DATA_VERSION).apply()
         } catch (e: Exception) { Log.e(TAG, "Ошибка сохранения", e) }
     }
 
@@ -67,9 +69,9 @@ object ProgressManager {
         ensureInitialized()
         val p = prefs ?: return false
         return try {
-            val json = gson.toJson(gameStateToProgress(gameState))
-            p.edit().putString(KEY_PROGRESS, json).putInt(KEY_DATA_VERSION, CURRENT_DATA_VERSION).commit()
-        } catch (e: Exception) { Log.e(TAG, "Ошибка синхронного сохранения", e); false }
+            p.edit().putString(KEY_PROGRESS, gson.toJson(gameStateToProgress(gameState)))
+                .putInt(KEY_DATA_VERSION, CURRENT_DATA_VERSION).commit()
+        } catch (e: Exception) { false }
     }
 
     fun load(): SavedProgress {
@@ -77,15 +79,21 @@ object ProgressManager {
         val p = prefs ?: return SavedProgress()
         val json = p.getString(KEY_PROGRESS, null) ?: return SavedProgress()
         return try {
-            val loaded = gson.fromJson<SavedProgress>(json, savedProgressType) ?: return SavedProgress()
-            sanitizeProgress(loaded)
+            // ✅ Десериализация через SavedProgressJson (String-ключи)
+            val loaded = gson.fromJson(json, SavedProgressJson::class.java) ?: return SavedProgress()
+            val starsInt = mutableMapOf<Int, Int>()
+            loaded.stars.forEach { (key, value) -> key.toIntOrNull()?.let { starsInt[it] = value } }
+            sanitizeProgress(SavedProgress(
+                loaded.currentLevel.coerceIn(1, MAX_LEVELS),
+                if (starsInt.isEmpty()) (1..MAX_LEVELS).associateWith { 0 } else starsInt.toMap(),
+                loaded.isAlbumUnlocked,
+                loaded.dataVersion
+            ))
         } catch (e: JsonSyntaxException) { Log.e(TAG, "Повреждён JSON", e); clear(); SavedProgress() }
         catch (e: Exception) { Log.e(TAG, "Ошибка загрузки", e); SavedProgress() }
     }
 
-    fun loadAndApply(gameState: GameState): Boolean {
-        return try { gameState.loadFrom(load()); true } catch (e: Exception) { false }
-    }
+    fun loadAndApply(gameState: GameState): Boolean = try { gameState.loadFrom(load()); true } catch (_: Exception) { false }
 
     fun clear() {
         ensureInitialized()
@@ -93,9 +101,7 @@ object ProgressManager {
     }
 
     fun hasSave(): Boolean = prefs?.contains(KEY_PROGRESS) ?: false
-
     fun getSavedProgressCopy(): SavedProgress = load().copy()
-
     fun isSaveValid(): Boolean = hasSave() && try { load().dataVersion > 0 } catch (_: Exception) { false }
 
     private fun gameStateToProgress(gameState: GameState): SavedProgress {
@@ -117,23 +123,18 @@ object ProgressManager {
         if (safeAlbum && (safeStars[MAX_LEVELS] ?: 0) == 0) { safeAlbum = false; needsFix = true }
         return if (needsFix) {
             val fixed = SavedProgress(safeLevel, safeStars.toMap(), safeAlbum, CURRENT_DATA_VERSION)
-            saveFixedProgress(fixed)
+            try { prefs?.edit()?.putString(KEY_PROGRESS, gson.toJson(fixed))?.putInt(KEY_DATA_VERSION, CURRENT_DATA_VERSION)?.apply() } catch (_: Exception) {}
             fixed
         } else progress
     }
 
-    private fun saveFixedProgress(progress: SavedProgress) {
-        try { prefs?.edit()?.putString(KEY_PROGRESS, gson.toJson(progress))?.putInt(KEY_DATA_VERSION, CURRENT_DATA_VERSION)?.apply() } catch (_: Exception) {}
-    }
-
     private fun ensureInitialized() {
-        if (!initialized) throw IllegalStateException("ProgressManager не инициализирован. Вызовите init(context).")
+        if (!initialized) throw IllegalStateException("ProgressManager не инициализирован.")
     }
 
     private fun migrateIfNeeded() {
         val p = prefs ?: return
-        val savedVersion = p.getInt(KEY_DATA_VERSION, 0)
-        if (savedVersion < CURRENT_DATA_VERSION) {
+        if (p.getInt(KEY_DATA_VERSION, 0) < CURRENT_DATA_VERSION) {
             p.edit().putInt(KEY_DATA_VERSION, CURRENT_DATA_VERSION).apply()
         }
     }

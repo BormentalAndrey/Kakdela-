@@ -1,13 +1,19 @@
 # Сохранить в app/proguard-rules.pro
 
 # ---------------------------------------------------------------------------
-# Gson
+# Gson — сохраняем generic-сигнатуры и классы данных
 # ---------------------------------------------------------------------------
 -keepattributes Signature
 -keepattributes *Annotation*
 -dontwarn sun.misc.**
+
+# Сам Gson
 -keep class com.google.gson.** { *; }
+-keep class com.google.gson.reflect.TypeToken { *; }
+
+# Наш SavedProgress и все его поля
 -keep class com.vasilisina.azbuka.data.ProgressManager$SavedProgress { *; }
+-keepclassmembers class com.vasilisina.azbuka.data.ProgressManager$SavedProgress { <fields>; }
 
 # ---------------------------------------------------------------------------
 # Kotlin

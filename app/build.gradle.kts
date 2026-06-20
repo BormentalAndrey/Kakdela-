@@ -26,8 +26,8 @@ android {
     // ======================================================================
     signingConfigs {
         create("release") {
-            // Ключ уже лежит в репозитории
-            storeFile = file("app/my-release-key.jks")
+            // Ключ лежит в папке app/ - используем правильный путь
+            storeFile = file("my-release-key.jks")  // ← ИСПРАВЛЕНО
             
             // Читаем пароли из переменных окружения (GitHub Secrets)
             storePassword = System.getenv("RELEASE_STORE_PASSWORD") ?: ""

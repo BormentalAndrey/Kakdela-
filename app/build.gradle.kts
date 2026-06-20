@@ -1,5 +1,3 @@
-// Сохранить в app/build.gradle.kts
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -23,6 +21,21 @@ android {
         }
     }
 
+    // ======================================================================
+    // КОНФИГУРАЦИЯ ПОДПИСИ (читаем из переменных окружения)
+    // ======================================================================
+    signingConfigs {
+        create("release") {
+            // Путь к файлу ключа
+            storeFile = file("app/my-release-key.jks")
+            
+            // Читаем пароли из переменных окружения (GitHub Secrets)
+            storePassword = System.getenv("RELEASE_STORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: ""
+            keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: ""
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -31,6 +44,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Подключаем подпись
+            signingConfig = signingConfigs.getByName("release")
         }
 
         debug {
